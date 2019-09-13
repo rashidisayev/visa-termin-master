@@ -1,0 +1,564 @@
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<base href="https://service2.diplo.de/rktermin/" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9; IE=10; IE=11" />
+	<title>
+		RK-Termin - Kategorie
+	</title>	
+	<link rel="stylesheet" type="text/css" href="style_css/reset.css" />	
+	<link rel="stylesheet" type="text/css" media="screen" href="style_css/screen.css" />	
+	<link rel="stylesheet" type="text/css" media="print" href="style_css/print.css" />	
+	<link rel="stylesheet" type="text/css" media="screen" href="style_css/rktermin.css" />
+	
+	<!--[if gte IE 7]><link rel="stylesheet" type="text/css" media="screen" href="style_css/ie7.css" /><![endif]-->	
+	<!--[if gte IE 6]><link rel="stylesheet" type="text/css" media="screen" href="style_css/ie6.css" /><![endif]-->	
+	<!--[if lte IE 5.5000]><link rel="stylesheet" type="text/css" media="screen" href="style_css/ie5.css" /><![endif]-->	
+
+
+	<link rel="stylesheet" type="text/css" href="css/redmond/jquery-ui-1.11.4.custom.min.css" />
+	<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script> 
+	<script type="text/javascript" src="js/jquery-ui-1.11.4.custom.min.js"></script> 
+		
+</head>
+<body>
+<div id="global">
+
+	<div id="header">
+	
+		<div id="logo">
+			<img src="style_images/auswaertiges-amt-logo-220x120.gif" alt="Auswärtiges Amt" />
+		</div>
+		<div id="logo-app" style="background-image:  url('images/auswaertigesamt.gif'); min-height: 54px; width: 78%;">
+			&nbsp;
+		</div>
+		<div id="nav-main" style="min-height: 28px;">
+		
+
+<ul>
+
+    <li><a
+        href="extern/appointment_showDay.do?request_locale=de&locationCode=kiew&realmId=561&categoryId=1497&dateStr=&openingPeriodId=&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+        title="Diese Seite in Deutsch"><img src="images/flags/de.png" alt="Deutsche Fahne" title="Deutsche Fahne" /></a></li>
+    <li><a
+        href="extern/appointment_showDay.do?request_locale=de&locationCode=kiew&realmId=561&categoryId=1497&dateStr=&openingPeriodId=&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+        title="Diese Seite in Deutsch"><img src="images/flags/de.png" alt="Deutsche Fahne" title="Deutsche Fahne" /></a></li>
+    
+        <li><a
+            href="extern/appointment_showDay.do?request_locale=en&locationCode=kiew&realmId=561&categoryId=1497&dateStr=&openingPeriodId=&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+            title="This page in English"><img src="images/flags/gb.png" alt="British Flag" title="British Flag" /></a></li>
+    
+    
+    
+    
+    
+</ul>
+
+		</div>		
+	
+	</div> <!-- end: #header -->			
+
+	
+	<div id="main" class="l-s">
+			
+		<div id="content">
+		
+			<div class="wrapper">	
+			
+<script>
+	$(function() {
+		$("#date").datepicker({
+			dateFormat : 'dd.mm.yy',
+			numberOfMonths : 3,
+			showButtonPanel : true
+		});
+	});
+</script>
+<div style="font-size: 14pt; font-weight: bold; margin-bottom: 1em;">
+	National Visa and/or Employment FROM 21.10.2019
+</div>
+
+
+
+
+<H2>
+	Please select an appointment
+	<a
+		onclick="return startCommitRequest();"
+		href="extern/appointment_showMonth.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=10.12.2019&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+		class="arrow" style="margin-left: 3em;">View Month</a>
+</H2>
+<div style="width: 100%;">
+	<div style="margin-left: 20%;">
+		You can book an appointment between 21.10.2019 and 13.12.2019 .
+	</div>
+</div>
+<div>
+	<div
+		style="float: left; width: 20%; text-align: left; margin-left: 2em;">
+		
+		
+			<a
+				onclick="return startCommitRequest();"
+				href="extern/appointment_showDay.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=10.12.2019&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+				style="margin-left: 2em; margin-right: 2em;"><img
+				src="images/go-previous.gif" /></a>
+		
+	</div>
+	<div
+		style="float: right; width: 20%; text-align: right; margin-right: 2em;">
+		
+		<a
+			onclick="return startCommitRequest();"
+			href="extern/appointment_showDay.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=12.12.2019&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+			style="margin-left: 2em; margin-right: 2em;"><img
+			src="images/go-next.gif" /></a>
+	</div>
+	<div style="">
+		
+		<form id="calendarform" name="calendarform" action="/rktermin/extern/appointment_showDay.do" method="get">
+			<div id="wwgrp_date" class="input text s">
+				<label for="date" class="label">Mittwoch:</label>
+				<input type="text" name="date" value="11.12.2019" id="date" onchange="submit()"/>
+				<span class="hint">date format:&nbsp;DD.MM.YYYY</span>
+			</div>
+			<input type="hidden" name="locationCode" value="kiew" id="calendarform_locationCode"/>
+			<input type="hidden" name="realmId" value="561" id="calendarform_realmId"/>
+			<input type="hidden" name="categoryId" value="1497" id="calendarform_categoryId"/>
+			<input type="hidden" name="openingPeriodId" value="" id="calendarform_openingPeriodId"/>
+			<input type="hidden" name="rebooking" value="true" id="calendarform_rebooking"/>
+			<input type="hidden" name="token" value="2dddssasdfvkoadausiva98fash9f1" id="calendarform_token"/>
+		</form>
+
+
+
+	</div>
+</div>
+<br clear="all" />
+
+
+
+
+
+
+
+
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					08:10
+					&mdash;
+					08:40
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=39961&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					08:40
+					&mdash;
+					09:10
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34534&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					09:10
+					&mdash;
+					09:40
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34539&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					09:40
+					&mdash;
+					10:10
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34544&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					10:30
+					&mdash;
+					11:00
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34554&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					11:00
+					&mdash;
+					11:30
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34588&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					11:30
+					&mdash;
+					12:00
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34559&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					13:00
+					&mdash;
+					13:30
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34564&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					13:30
+					&mdash;
+					14:00
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34568&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					14:00
+					&mdash;
+					14:30
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34572&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					14:30
+					&mdash;
+					15:00
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34576&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					15:00
+					&mdash;
+					15:30
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34580&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+			<hr style="clear: left;">
+		
+	
+		<div style="width: 100%;">
+			<div style="float: left;">
+				<h4>
+					15:30
+					&mdash;
+					16:00
+				</h4>
+			</div>
+			
+			
+			
+			
+				<div style="margin-left: 20%;">
+					<a
+						onclick="return startCommitRequest();"
+						href="extern/appointment_showForm.do?locationCode=kiew&realmId=561&categoryId=1497&dateStr=11.12.2019&openingPeriodId=34584&rebooking=true&token=2dddssasdfvkoadausiva98fash9f1"
+						class="arrow">Book this appointment</a>
+				</div>
+			
+		</div>
+		
+	
+
+
+
+
+
+
+<script language="javascript" type="text/javascript">
+
+$(function() {
+	$("#commit-request").dialog({
+		resizable : false,
+		height : 200,
+		width: 350,
+		modal : true,
+		autoOpen: false, 
+		buttons : {
+			/* none */
+		},
+		close: function( event, ui ) {
+			$('#commit-request').dialog('open');
+		}
+	});
+ 	$( "#commit-request-progressbar" ).progressbar({
+	  value: false
+	});
+});
+
+function startCommitRequest(event) {
+	
+	$("#commit-request").css('cursor', 'progress');
+	
+	setTimeout("innerStartCommitRequest()", 500);
+
+	return true;
+	
+}
+
+function innerStartCommitRequest() {
+	$('#commit-request').dialog('open');
+}
+
+</script>
+
+
+
+<div id="commit-request" title="In Bearbeitung ... ">
+	<p>
+		<span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0; margin-bottom: 100px"></span>
+		<span id="question">
+			<b>this may take a few moments ...</b><br />Your request is being processed ... please wait ... refreshing this page will delay your booking.
+		</span>
+		
+	</p>
+	<div id="commit-request-progressbar" style="background: #7192b6;">
+	
+		<div style="background: rgba(0,0,0,0) url('images/indet.gif'); opacity:0.25; height:2em;">
+			&nbsp;
+		</div>
+	
+	</div>
+</div>
+			</div>
+			
+			<div class="bottom"></div>
+			
+		</div>
+		
+		<div id="context">
+		
+			<div class="wrapper">
+				&nbsp;
+			</div>
+			
+		</div>
+		
+	</div> <!-- end: #main -->
+	<div id="footer">
+		
+
+
+
+<div style="min-height: 15px;">
+	<ul>
+		<li>RK-Termin&nbsp;1.2.31.0</li>
+		<li style="margin-left: 5em;">
+			
+				<a href="extern/dsgvo.do?request_locale=en"
+				target="_blank"
+					title="Information on data protection and instructions for use"><img
+					src="images/flags/gb.png"
+					alt="Information on data protection and instructions for use"
+					title="Information on data protection and instructions for use" />&nbsp; Information
+					on data protection and instructions for use</a>
+			     </li>
+	</ul>
+</div>
+
+
+
+	</div>
+</div>
+</body>
+</html>

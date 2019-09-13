@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#Set root_folder to the directory which contains run.sh
+root_folder="<DIR TO APP>"
+consulate_details="locationCode=kiew&realmId=561&categoryId=1497"
+rescheduling_token="2dddssasdfvkoadausiva98fash9f1"
+
+
+#DO NOT EDIT THESE
+consulate_base_url="https://service2.diplo.de/rktermin/extern/appointment_showMonth.do"
+rescheduling_base_url="https://service2.diplo.de/rktermin/extern/appointment_showDay.do"
+booking_base_url="https://service2.diplo.de/rktermin/extern/appointment_showForm.do"
+host="https://service2.diplo.de/rktermin"

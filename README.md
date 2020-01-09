@@ -2,6 +2,8 @@
 This script is not mine i just modified it's notification part
 i simply change it to telegram chanel
 It is modified for Kyiv located embassy
+PS: i didn't fix an issue with auto booking so just change to correct CURL and it will work for you as well
+
 
 
 # visa-appointment-helper
@@ -21,10 +23,10 @@ This script uses the human captcha solver service, [deathbycaptcha](http://death
 4. Now, run `./setup.sh` to install pip and the required python dependencies. Make sure you have python3 installed before you run this
 
 
-### Configure Android Phone for Notifications
+### Configure for Notifications
 open run.sh
 edit line
-curl -s -X POST https://api.telegram.org/bot<BOT TOKEN>/sendMessage -d chat_id=<CHAT ID> -d text=$available_date
+curl -s -X POST https://api.telegram.org/botBOTTOKENHERE/sendMessage -d chat_id=CHATIDHERE -d text=$available_date
 
 Then put run.sh to cron
 

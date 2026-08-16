@@ -53,15 +53,16 @@ class AppointmentHandler:
         
         cmd = [
             "curl", "-v", "-L", "-s", "-S",
+            "-A", config.USER_AGENT,
             "-b", cookies_path,
             "-c", cookies_path,
             "-o", output_file,
             url
         ]
-        
+
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
-            
+
             if result.returncode == 0:
                 self.logger.info(f"Captcha page saved to {output_file}")
                 time.sleep(3)  # Wait for file to be written
@@ -127,24 +128,41 @@ class AppointmentHandler:
             True if successful, False otherwise
         """
         self.logger.info("Step 3: Fetching response page with available dates...")
-        
+
         cookies_path = os.path.join(self.root_folder, "target", "cookies")
         output_file = os.path.join(self.root_folder, "target", "response.html")
-        
+
+        # Post back to the form's own action URL: it carries the ;jsessionid
+        # that ties this request to the session the captcha was issued in.
+        form = extractors.extract_form_context(
+            self.root_folder, "captchapage.html", config.CAPTCHA_SELECTOR_MONTH
+        )
+        if not form:
+            self.logger.error("Could not read the captcha form context")
+            return False
+
+        fields = dict(form["fields"])
+        fields["captchaText"] = captcha_solution
+        fields.setdefault("locationCode", config.LOCATION_CODE)
+        fields.setdefault("realmId", config.REALM_ID)
+        fields.setdefault("categoryId", config.CATEGORY_ID)
+
         cmd = [
             "curl", "-X", "POST",
             "-v", "-L", "-s", "-S",
-            "-F", "request_locale=en",
-            "-F", f"captchaText={captcha_solution}",
-            "-F", f"locationCode={config.LOCATION_CODE}",
-            "-F", f"realmId={config.REALM_ID}",
-            "-F", f"categoryId={config.CATEGORY_ID}",
+            "-A", config.USER_AGENT,
+        ]
+        for name, value in fields.items():
+            cmd += ["--data-urlencode", f"{name}={value}"]
+        # Struts dispatches on the submit button's name
+        cmd += ["--data-urlencode", f"{config.SHOW_MONTH_ACTION}=Weiter"]
+        cmd += [
             "-b", cookies_path,
             "-c", cookies_path,
             "-o", output_file,
-            config.CONSULATE_BASE_URL
+            form["action"]
         ]
-        
+
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             

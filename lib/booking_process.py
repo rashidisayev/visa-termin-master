@@ -17,8 +17,13 @@ class BookingProcessDetector:
     # Portal signatures for identification
     PORTAL_SIGNATURES = {
         "legacy_rktermin": {
-            "indicators": ["rktermin", "frontend", "appointment_captcha"],
-            "description": "Legacy RKTerMin portal (before 2024)",
+            # Matched against the live portal: pages link to /rktermin/extern/
+            # and carry the "RK-Termin" product name. The previous signature
+            # required "frontend" and "appointment_captcha", neither of which
+            # appears on the real month view, so detection always failed and
+            # fell through to the generic scraper.
+            "indicators": ["rktermin", "extern"],
+            "description": "RK-Termin portal (service2.diplo.de)",
         },
         "new_termin": {
             "indicators": ["termin", "digital", "appointment_form", "new_booking"],

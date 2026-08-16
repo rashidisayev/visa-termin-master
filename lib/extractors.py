@@ -5,6 +5,7 @@ Supports both legacy and new German embassy portal layouts.
 """
 import os
 from typing import Optional
+from urllib.parse import urljoin
 from . import config, utils, booking_process
 
 
@@ -42,6 +43,60 @@ def extract_captcha_image(
         logger.info(f"Captcha image saved to {output_path}")
     
     return success
+
+
+def extract_form_context(
+    root_folder: str,
+    html_file: str,
+    form_id: str
+) -> Optional[dict]:
+    """
+    Extract the submit target and hidden fields of a portal form.
+
+    The RK-Termin portal is a Java/Struts application that keeps the session
+    in a URL path parameter (``;jsessionid=...``) on the form's action, not
+    only in a cookie. Posting to the bare ``.do`` URL lands in a different
+    session, so the captcha can never validate. The form also dispatches on
+    the submit button's name (``action:appointment_showMonth``), which has to
+    be sent along with the hidden fields.
+
+    Args:
+        root_folder: Root folder path
+        html_file: Name of the saved HTML file containing the form
+        form_id: ID of the form to read
+
+    Returns:
+        Dict with 'action' (absolute URL) and 'fields' (dict), or None
+    """
+    logger = utils.setup_logger()
+
+    html_path = os.path.join(root_folder, "target", html_file)
+    html_content = utils.load_html_file(html_path)
+    if not html_content:
+        logger.error(f"Failed to load HTML file: {html_path}")
+        return None
+
+    form = utils.find_element(html_content, "form", {"id": form_id})
+    if not form:
+        logger.error(f"Form with id '{form_id}' not found in {html_file}")
+        return None
+
+    action = form.get("action") or ""
+    action_url = urljoin(config.CONSULATE_BASE_URL, action) if action else config.CONSULATE_BASE_URL
+
+    # Carry every non-submit field forward exactly as the browser would.
+    fields = {}
+    for element in form.find_all(["input", "select", "textarea"]):
+        name = element.get("name")
+        if not name or name.startswith("action:"):
+            continue
+        fields[name] = element.get("value") or ""
+
+    if "jsessionid" not in action_url:
+        logger.warning("Form action carries no jsessionid - session may not persist")
+
+    logger.info(f"Form '{form_id}' posts to {action_url.split('?')[0]} with {len(fields)} fields")
+    return {"action": action_url, "fields": fields}
 
 
 def captcha_was_rejected(

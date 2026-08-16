@@ -51,9 +51,19 @@ CATEGORY_ID = os.environ.get("CATEGORY_ID", "1497")
 
 RESCHEDULING_TOKEN = os.environ.get("RESCHEDULING_TOKEN", "")
 
+# The portal rejects unknown clients with 403, so identify as a browser
+USER_AGENT = os.environ.get(
+    "USER_AGENT",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+)
+
 # HTML Selectors
 CAPTCHA_SELECTOR_MONTH = "appointment_captcha_month"
 REBOOK_CAPTCHA_SELECTOR = "rebook_captcha"
+
+# Struts dispatches on the submit button's name, which must be POSTed
+SHOW_MONTH_ACTION = "action:appointment_showMonth"
 CONTENT_DIV_ID = "content"
 ARROW_LINK_CLASS = "arrow"
 

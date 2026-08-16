@@ -39,11 +39,7 @@ pip3 install -r requirements.txt
 # Make scripts executable
 echo "Making scripts executable..."
 chmod +x run.sh
-chmod +x run_refactored.sh
 chmod +x setup.sh
-if [ -f "lib/deathbycaptcha" ]; then
-    chmod +x lib/deathbycaptcha
-fi
 
 # Create directories
 echo "Creating necessary directories..."
@@ -59,8 +55,7 @@ if [ ! -f "setenv" ]; then
     echo "  export ROOT_FOLDER=\"$(pwd)\""
     echo "  export TELEGRAM_BOT_TOKEN=\"your_token_here\""
     echo "  export TELEGRAM_CHAT_ID=\"your_chat_id_here\""
-    echo "  export DBC_USERNAME=\"your_dbc_username\""
-    echo "  export DBC_PASSWORD=\"your_dbc_password\""
+    echo "  export CAPTCHA_API_KEY=\"your_2captcha_api_key\""
 else
     echo "✓ setenv file found"
 fi
@@ -80,7 +75,7 @@ echo "================================"
 echo ""
 echo "Next steps:"
 echo "1. Edit ./setenv with your configuration"
-echo "2. Run: ./run_refactored.sh"
+echo "2. Run: ./run.sh"
 echo "3. Check logs: tail -f log/log.txt"
 echo ""
 echo "For more details, see REFACTORING.md"

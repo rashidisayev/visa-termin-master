@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lib import config, utils, extractors, notifications
+from lib import config, utils, extractors, notifications, captcha_solver
 
 
 class AppointmentHandler:
@@ -27,6 +27,9 @@ class AppointmentHandler:
         """
         self.root_folder = root_folder or os.getcwd()
         self.logger = utils.setup_logger()
+        # Solver behind the most recent solution, kept so a rejected captcha
+        # can be reported back to 2Captcha for a refund.
+        self.last_solver: Optional[captcha_solver.TwoCaptchaSolver] = None
         self.logger.info("=" * 60)
         self.logger.info("Visa Appointment Handler Initialized")
         self.logger.info("=" * 60)
@@ -73,65 +76,46 @@ class AppointmentHandler:
     
     def solve_captcha(self, captcha_file: str, selector_id: str) -> Optional[str]:
         """
-        Extract and solve captcha.
-        
+        Extract the captcha image from a saved page and solve it via 2Captcha.
+
         Args:
             captcha_file: HTML file containing captcha
             selector_id: CSS selector ID for captcha form
-            
+
         Returns:
             Captcha solution or None if failed
         """
-        self.logger.info(f"Step 2: Solving captcha from {captcha_file}...")
-        
-        # Extract captcha image
-        success = extractors.extract_captcha_image(self.root_folder, captcha_file, selector_id)
-        if not success:
+        self.logger.info(
+            f"Step 2: Solving captcha from {captcha_file} via {config.CAPTCHA_PROVIDER}..."
+        )
+
+        if not extractors.extract_captcha_image(self.root_folder, captcha_file, selector_id):
             self.logger.error("Failed to extract captcha image")
             return None
-        
-        # Solve using deathbycaptcha
-        try:
-            captcha_path = os.path.join(self.root_folder, "target", "captcha.jpg")
-            dbc_path = os.path.join(self.root_folder, config.DBC_BINARY_PATH)
-            
-            cmd = [
-                dbc_path,
-                "-l", config.DBC_USERNAME,
-                "-p", config.DBC_PASSWORD,
-                "-c", captcha_path
-            ]
-            
-            # Change to target directory for DBC
-            original_cwd = os.getcwd()
-            os.chdir(os.path.join(self.root_folder, "target"))
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            os.chdir(original_cwd)
-            
-            if result.returncode == 0:
-                solution = utils.read_file_content(
-                    os.path.join(self.root_folder, "target", "answer.txt")
-                )
-                request_id = utils.read_file_content(
-                    os.path.join(self.root_folder, "target", "id.txt")
-                )
-                
-                if solution:
-                    self.logger.info(f"Captcha solved - Request ID: {request_id}, Answer: {solution}")
-                    return solution
-                else:
-                    self.logger.error("Captcha solution file is empty")
-                    return None
-            else:
-                self.logger.error(f"Failed to solve captcha: {result.stderr}")
-                return None
-                
-        except Exception as e:
-            self.logger.error(f"Error solving captcha: {e}")
+
+        solver = captcha_solver.get_solver(logger=self.logger)
+        if not solver:
             return None
-    
+
+        captcha_path = os.path.join(self.root_folder, "target", "captcha.jpg")
+        solution = solver.solve_image(captcha_path)
+
+        if solution:
+            self.last_solver = solver
+        else:
+            self.last_solver = None
+
+        return solution
+
+    def report_bad_captcha(self) -> None:
+        """
+        Tell 2Captcha the last solution was wrong so the cost is refunded.
+        Called when the portal rejects a solved captcha.
+        """
+        if config.CAPTCHA_REPORT_BAD and self.last_solver:
+            self.last_solver.report_bad()
+        self.last_solver = None
+
     def fetch_response_page(self, captcha_solution: str) -> bool:
         """
         Fetch the response page with available dates.
@@ -327,7 +311,14 @@ class AppointmentHandler:
             # Step 3: Fetch response page
             if not self.fetch_response_page(captcha_solution):
                 return False
-            
+
+            # The portal rejects wrong captcha solutions - report those back to
+            # 2Captcha so they are refunded, and stop this run.
+            if extractors.captcha_was_rejected(self.root_folder):
+                self.logger.error("Portal rejected the captcha solution")
+                self.report_bad_captcha()
+                return False
+
             # Step 4: Check for available dates
             available_date = self.check_and_notify_available_date()
             

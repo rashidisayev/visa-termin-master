@@ -48,7 +48,7 @@ print("TEST 2: Module Structure Validation")
 print("-" * 70)
 try:
     import lib
-    modules = ['config', 'utils', 'visa_types', 'booking_process', 'extractors', 'notifications']
+    modules = ['config', 'utils', 'visa_types', 'booking_process', 'extractors', 'notifications', 'captcha_solver']
     loaded_count = 0
     for mod in modules:
         if hasattr(lib, mod):
@@ -162,9 +162,10 @@ try:
     print("✅ Notification settings loaded")
     print(f"   TELEGRAM_BOT_TOKEN:  {'[SET]' if config.TELEGRAM_BOT_TOKEN else '[NOT SET]'}")
     print(f"   TELEGRAM_CHAT_ID:    {'[SET]' if config.TELEGRAM_CHAT_ID else '[NOT SET]'}")
-    print(f"   DBC_USERNAME:        {'[SET]' if config.DBC_USERNAME else '[NOT SET]'}")
-    print(f"   DBC_PASSWORD:        {'[SET]' if config.DBC_PASSWORD else '[NOT SET]'}")
-    print(f"   DBC_BINARY_PATH:     {config.DBC_BINARY_PATH}")
+    print(f"   CAPTCHA_PROVIDER:    {config.CAPTCHA_PROVIDER}")
+    print(f"   CAPTCHA_API_KEY:     {'[SET]' if config.CAPTCHA_API_KEY else '[NOT SET]'}")
+    print(f"   CAPTCHA_API_URL:     {config.CAPTCHA_API_URL}")
+    print(f"   CAPTCHA_TIMEOUT:     {config.CAPTCHA_TIMEOUT}s")
 except Exception as e:
     print(f"❌ Error: {e}")
 print()
@@ -195,9 +196,9 @@ print("✅ Multi-location support verified")
 print("✅ HTML parsing selectors configured")
 print()
 print("NEXT STEPS FOR FULL TESTING:")
-print("  1. Install BeautifulSoup4: pip install beautifulsoup4")
+print("  1. Install dependencies: pip install -r requirements.txt")
 print("  2. Set Telegram credentials in .setenv file")
-print("  3. Set DeathByCaptcha credentials in .setenv file")
+print("  3. Set CAPTCHA_API_KEY (2Captcha) in .setenv file")
 print("  4. Configure VISA_TYPE and EMBASSY_LOCATION in .setenv")
 print("  5. Run the system: ./run.sh")
 print()

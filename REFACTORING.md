@@ -18,7 +18,7 @@ lib/
 ├── extract_booking_time.py     # CLI wrapper (legacy)
 ├── extract_resch_appt_url.py   # CLI wrapper (legacy)
 ├── parse_response.py           # CLI wrapper (legacy)
-└── deathbycaptcha/             # Captcha solver binary
+└── captcha_solver.py           # 2Captcha API client
 ```
 
 ### Shell Scripts
@@ -80,8 +80,7 @@ lib/
    export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
    export TELEGRAM_BOT_TOKEN="your_bot_token_here"
    export TELEGRAM_CHAT_ID="your_chat_id_here"
-   export DBC_USERNAME="your_dbc_username"
-   export DBC_PASSWORD="your_dbc_password"
+   export CAPTCHA_API_KEY="your_2captcha_api_key"
    # ... other settings
    ```
 
@@ -137,9 +136,8 @@ export RESCHEDULING_TOKEN="your_token"
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
 
-# DeathByCaptcha Credentials
-export DBC_USERNAME="your_username"
-export DBC_PASSWORD="your_password"
+# 2Captcha API key
+export CAPTCHA_API_KEY="your_2captcha_api_key"
 
 # Auto-booking (optional)
 export AUTO_BOOK="false"

@@ -78,8 +78,9 @@ main() {
     export RESCHEDULING_TOKEN
     export TELEGRAM_BOT_TOKEN
     export TELEGRAM_CHAT_ID
-    export DBC_USERNAME
-    export DBC_PASSWORD
+    export CAPTCHA_PROVIDER
+    export CAPTCHA_API_KEY
+    export CAPTCHA_TIMEOUT
     
     # Determine auto-book mode
     AUTO_BOOK_FLAG=""

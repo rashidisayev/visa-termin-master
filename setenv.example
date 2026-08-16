@@ -78,20 +78,42 @@ export TELEGRAM_BOT_TOKEN="your_bot_token_here"
 export TELEGRAM_CHAT_ID="your_chat_id_here"
 
 ################################################################################
-# DeathByCaptcha Credentials
+# Captcha Solving (2Captcha)
 ################################################################################
 
-# DeathByCaptcha account username
-# Register at: https://deathbycaptcha.com/
-# They offer a free tier with some credits
-export DBC_USERNAME="your_dbc_username"
+# 2Captcha API key - REQUIRED for captcha solving
+# Register and top up at: https://2captcha.com/enterpage
+# The key is on the dashboard right after signup
+export CAPTCHA_API_KEY="your_2captcha_api_key"
 
-# DeathByCaptcha account password
-export DBC_PASSWORD="your_dbc_password"
+# Solver provider (only '2captcha' is implemented)
+export CAPTCHA_PROVIDER="2captcha"
 
-# Path to DeathByCaptcha binary
-# Usually lib/deathbycaptcha in the project directory
-export DBC_BINARY_PATH="lib/deathbycaptcha"
+# Seconds to wait for a solution before giving up (image captchas: ~10-30s)
+export CAPTCHA_TIMEOUT="120"
+
+# Optional: seconds between result polls
+# export CAPTCHA_POLL_INTERVAL="5"
+
+# Optional: per-HTTP-request timeout
+# export CAPTCHA_HTTP_TIMEOUT="30"
+
+# Optional: ask workers to respect letter case (recommended, default true)
+# export CAPTCHA_CASE_SENSITIVE="true"
+
+# Optional: character set hint - 0=any, 1=digits only, 2=letters only
+# export CAPTCHA_NUMERIC="0"
+
+# Optional: expected answer length (0 = unconstrained)
+# export CAPTCHA_MIN_LENGTH="0"
+# export CAPTCHA_MAX_LENGTH="0"
+
+# Optional: report wrong solutions to get them refunded (default true)
+# export CAPTCHA_REPORT_BAD="true"
+
+# Optional: use a 2Captcha-compatible service instead
+# export CAPTCHA_API_URL="https://2captcha.com/in.php"
+# export CAPTCHA_RESULT_URL="https://2captcha.com/res.php"
 
 ################################################################################
 # Optional: Auto-Booking Settings

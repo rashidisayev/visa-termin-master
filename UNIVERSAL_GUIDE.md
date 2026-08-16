@@ -29,8 +29,7 @@ That's it! The system automatically configures:
 ```bash
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
-export DBC_USERNAME="your_dbc_username"
-export DBC_PASSWORD="your_dbc_password"
+export CAPTCHA_API_KEY="your_2captcha_api_key"
 ```
 
 ### Step 3: Run
@@ -348,7 +347,7 @@ location_mappings = {
 
 1. ✅ Copy `setenv.example` → `setenv`
 2. ✅ Set `VISA_TYPE` and `EMBASSY_LOCATION`
-3. ✅ Add Telegram and DBC credentials
+3. ✅ Add Telegram bot token and 2Captcha API key
 4. ✅ Run `./run_refactored.sh`
 5. ✅ Check logs for portal detection
 6. ✅ Wait for appointments!

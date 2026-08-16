@@ -3,15 +3,13 @@
 
 # Core Dependencies
 beautifulsoup4>=4.9.0
+requests>=2.32.0        # 2Captcha API client
 
 # Testing & Code Quality
 pytest>=7.0.0
 pytest-cov>=3.0.0
 pytest-mock>=3.6.0
 pytest-asyncio>=0.18.0
-
-# Optional: For better HTTP requests (if extending functionality)
-# requests>=2.25.0
 
 # Optional: For data validation
 # pydantic>=1.8.0

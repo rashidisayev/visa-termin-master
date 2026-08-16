@@ -4,7 +4,7 @@
 
 This project is a German visa appointment automation tool that:
 1. Monitors German consulate visa portals for available appointments
-2. Solves captchas automatically using DeathByCaptcha service
+2. Solves captchas automatically through the 2Captcha API
 3. Sends notifications via Telegram when appointments become available
 4. Can automatically book appointments (optional)
 
@@ -270,9 +270,15 @@ The logger automatically writes to both console and file:
 - Check if HTML selector IDs changed in consulate website
 - Update `config.py` selector constants
 
-**Issue**: "Captcha solution file is empty"
-- Check DeathByCaptcha credentials
-- Verify captcha.jpg was extracted correctly
+**Issue**: "CAPTCHA_API_KEY is not set" or `ERROR_WRONG_USER_KEY`
+- Set `CAPTCHA_API_KEY` in `setenv` to your 2Captcha key
+
+**Issue**: `ERROR_ZERO_BALANCE`
+- Top up the 2Captcha account
+
+**Issue**: Captcha solved but the portal rejects it
+- Verify `target/captcha.jpg` was extracted correctly
+- Wrong solutions are auto-reported to 2Captcha for a refund (`CAPTCHA_REPORT_BAD`)
 
 **Issue**: "Telegram notification failed"
 - Verify bot token and chat ID in `.setenv`
@@ -301,7 +307,7 @@ The logger automatically writes to both console and file:
 ## Performance Considerations
 
 - **Network delays**: Script waits 3-5 seconds for pages to load
-- **Captcha solving**: Typically 30-60 seconds with DeathByCaptcha
+- **Captcha solving**: Typically 10-30 seconds with 2Captcha (`CAPTCHA_TIMEOUT` caps the wait at 120s)
 - **Rate limiting**: Consulate may rate-limit requests
 - **Logging overhead**: File logging adds minimal overhead
 
@@ -341,7 +347,7 @@ When adding features:
 
 ## Resources
 
-- [DeathByCaptcha API](https://deathbycaptcha.com/api)
+- [2Captcha API](https://2captcha.com/2captcha-api)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [BeautifulSoup Documentation](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
 - [Python Logging](https://docs.python.org/3/library/logging.html)

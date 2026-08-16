@@ -10,6 +10,29 @@ forms.
 
 ---
 
+## ⚖️ What this is for
+
+This is a **personal help tool**. It was written for applicants who struggle to
+fill in the appointment form correctly, or who cannot realistically sit and
+refresh a portal for weeks hoping to catch one of very few free slots.
+
+**It is not for sale and is not intended for commercial use.** Please do not use
+it to run a paid booking service, resell appointments, or otherwise profit from
+access to public appointment slots. Appointments at German missions are free of
+charge, and slots taken to be sold on are slots denied to people who need them.
+
+Please also:
+
+- Book only appointments you genuinely intend to keep, using **real** details
+- Cancel via the link in the confirmation mail if your plans change
+- Run it on a sensible schedule — this is a public service, not a load target
+
+This project is not affiliated with, endorsed by, or connected to the German
+Federal Foreign Office or any German mission. It is provided as is, with no
+warranty, and you are responsible for how you use it.
+
+---
+
 ## ✨ What it does
 
 - ✅ Checks any German embassy + visa category you configure
@@ -247,7 +270,12 @@ python3 -m pytest tests/ -q
 
 ## 📝 License
 
-See [LICENSE](LICENSE)
+See [LICENSE](LICENSE) — MIT, originating from the upstream project this is
+derived from.
+
+Note that MIT permits commercial use. The request in
+[What this is for](#️-what-this-is-for) is the author's intent for the project,
+not an additional licence condition.
 
 ---
 

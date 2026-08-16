@@ -1,135 +1,157 @@
 # visa-appointment-helper
 
-🎫 A German visa appointment automation tool that monitors visa portals, solves captchas, and sends notifications when appointments become available.
+🎫 Monitors the German Foreign Office appointment portal (RK-Termin) for free visa
+appointments, solves the captcha via 2Captcha, notifies you on Telegram — and can
+book the slot automatically.
 
-**📢 This codebase has been refactored for better maintainability and modularity. See [REFACTORING.md](REFACTORING.md) for details.**
+Works for **both Schengen (C) and national (D)** visas. Nothing is hardcoded to a
+visa type: you point it at an embassy and category, and it drives the portal's own
+forms.
 
 ---
 
-## ✨ Features
+## ✨ What it does
 
-- ✅ Automatically checks for available visa appointments
-- ✅ Solves captchas via the 2Captcha API
-- ✅ Sends notifications via Telegram when dates become available
-- ✅ Can automatically book appointments (optional)
-- ✅ Comprehensive logging and error handling
-- ✅ Modular Python package architecture
-- ✅ Centralized configuration management
-- ✅ Type-hinted code for better IDE support
+- ✅ Checks any German embassy + visa category you configure
+- ✅ Solves the portal captcha through the 2Captcha API, retrying on misreads
+- ✅ Filters by a date window you set (not a hardcoded month)
+- ✅ Sends a Telegram message when a matching date appears
+- ✅ Books the appointment automatically, with a dry-run mode first
+- ✅ Reports wrong captcha solutions back to 2Captcha for a refund
 
 ## 📋 Requirements
 
-- Python 3.6 or higher
-- `beautifulsoup4` for HTML parsing
-- `requests` for the 2Captcha API
-- 2Captcha account and API key (pay-as-you-go, ~$0.5-1 per 1000 captchas)
-- Telegram bot token and chat ID
-- German consulate visa portal access
+- Python 3.6+
+- `beautifulsoup4`, `requests` (see [requirements.txt](requirements.txt))
+- A **2Captcha** account with balance — roughly $1 per 1000 captchas, and one
+  check costs one captcha
+- Optional: a Telegram bot token and chat ID for notifications
 
-## 🚀 Quick Start
-
-### 1. Installation
+## 🚀 Quick start
 
 ```bash
-# Clone/download the repository
-cd visa-termin-master
-
-# Run setup (installs dependencies, makes scripts executable)
-chmod +x setup_refactored.sh
-./setup_refactored.sh
+./setup.sh                 # installs dependencies, creates directories
+cp setenv.example setenv   # then edit setenv (see below)
+./run.sh                   # one check
+tail -f log/log.txt        # watch what it does
 ```
 
-### 2. Configuration
-
-```bash
-# Copy example configuration
-cp setenv.example setenv
-
-# Edit setenv with your values
-# Required: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, CAPTCHA_API_KEY
-nano setenv
-```
-
-### 3. Run
-
-```bash
-# Simple check (no booking)
-./run_refactored.sh
-
-# With auto-booking enabled
-export AUTO_BOOK=true
-./run_refactored.sh
-
-# Check logs
-tail -f log/log.txt
-```
+`setenv` is gitignored — your API key and personal details stay out of the repo.
 
 ## 🔧 Configuration
 
-Create a `.setenv` file in the project root:
+Everything lives in `setenv`. The three IDs below are the only ones that select
+your appointment; find them by clicking through the portal in a browser and
+reading the final URL:
+
+```
+https://service2.diplo.de/rktermin/extern/choose_realmList.do?locationCode=XXXX
+   → ...?locationCode=kual&realmId=502&categoryId=1761
+```
+
+### Which appointment
 
 ```bash
-export ROOT_FOLDER="$(pwd)"
-export LOCATION_CODE="kual"     # from the portal URL
-export REALM_ID="502"
-export CATEGORY_ID="1761"
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id"
-export CAPTCHA_API_KEY="your_2captcha_api_key"
-export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
+export LOCATION_CODE="kual"    # embassy code
+export REALM_ID="502"          # visa section — differs between C and D
+export CATEGORY_ID="1761"      # the specific category
+
+# Or watch several at once, e.g. a C and a D category together:
+# export VISA_TARGETS="kiew:561:1497,kiew:562:1785"
 ```
 
-See [setenv.example](setenv.example) for all available options.
-
-## 📚 Documentation
-
-- **[REFACTORING.md](REFACTORING.md)** - Architecture improvements and new structure
-- **[DEVELOPER.md](DEVELOPER.md)** - In-depth developer guide
-- **[setenv.example](setenv.example)** - Configuration template with comments
-
-## 🏗️ Project Structure
-
-```
-visa-termin-master/
-├── lib/                      # Main Python package
-│   ├── __init__.py
-│   ├── config.py            # Configuration management
-│   ├── utils.py             # Shared utilities
-│   ├── extractors.py        # HTML extraction logic
-│   ├── notifications.py     # Telegram notifications
-│   └── appointment_handler.py # Main orchestrator
-├── run_refactored.sh        # New entry point (recommended)
-├── run.sh                   # Original script (legacy)
-├── setenv                   # Configuration (not in repo)
-├── setenv.example           # Configuration template
-├── requirements.txt         # Python dependencies
-└── log/                     # Log files
-    └── log.txt
-```
-
-## 🔔 Notifications
-
-### Telegram Setup
-
-1. Create a bot with [@BotFather](https://t.me/botfather)
-2. Get your chat ID by sending a message to your bot
-3. Add token and chat ID to `.setenv`:
+### Which dates
 
 ```bash
-export TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-export TELEGRAM_CHAT_ID="123456789"
+export EARLIEST_DATE=""        # DD.MM.YYYY, blank = today
+export LATEST_DATE=""          # DD.MM.YYYY, blank = no limit
+# export ACCEPTED_WEEKDAYS="0,1,2,3,4"   # 0=Mon .. 6=Sun
 ```
 
-## ⏰ Schedule with Cron
-
-Check for appointments every 30 minutes during business hours:
+### Captcha solving
 
 ```bash
-# Add to crontab with: crontab -e
-*/30 8-17 * * 1-5 cd /path/to/visa-termin-master && ./run_refactored.sh
+export CAPTCHA_API_KEY="your_2captcha_key"
+export CAPTCHA_MAX_ATTEMPTS="3"   # solvers miss ~1 in 4; retry rather than lose a slot
 ```
 
-## 🎯 Use as Python Module
+### Notifications (optional)
+
+```bash
+export TELEGRAM_BOT_TOKEN="..."   # create with @BotFather
+export TELEGRAM_CHAT_ID="..."
+```
+
+See [setenv.example](setenv.example) for every option with comments.
+
+## 📅 Auto-booking
+
+> **A successful booking is a real appointment at a real consulate.** There is no
+> test mode on the portal. The mission blocks the applicant's passport number
+> after a no-show, so only book appointments you intend to keep or cancel.
+
+```bash
+export APPLICANT_LASTNAME=""
+export APPLICANT_FIRSTNAME=""
+export APPLICANT_EMAIL=""      # confirmation + cancellation link arrive here
+export APPLICANT_PASSPORT=""   # real number: printed on the confirmation, checked at the door
+
+export AUTO_BOOK="true"
+export BOOKING_DRY_RUN="true"  # ← leave this on until a dry run succeeds
+```
+
+**Always dry-run first.** With `BOOKING_DRY_RUN="true"` the tool walks the entire
+live flow — opens the day, picks a slot, solves the booking captcha, builds the
+exact POST body — then stops without submitting and logs precisely what it would
+have sent. Read that log, confirm the name, passport, date and time, then set
+`BOOKING_DRY_RUN="false"`.
+
+If a dry run warns that some fields were left empty, that category asks for
+something extra. Supply it:
+
+```bash
+export APPLICANT_EXTRA_FIELDS="birthDate=01.01.1990,phone=+4915112345678"
+```
+
+### The confirmation mail matters
+
+The portal mails a confirmation that contains the **only** cancellation link:
+
+```
+cancellation_form.do?reference=kiew_11358600&token=<token>
+```
+
+Keep access to `APPLICANT_EMAIL`. Without that link you cannot cancel, and a
+no-show blocks the passport number from booking again.
+
+## ⚙️ How it works
+
+1. **Fetch** — loads the month page for your category
+2. **Solve** — extracts the captcha image and solves it via 2Captcha
+3. **Submit** — posts back to the form's own action URL, preserving the session
+4. **Check** — parses offered dates and applies your date window
+5. **Notify** — sends a Telegram message
+6. **Book** *(optional)* — follows the portal's links:
+   `appointment_showDay` → `appointment_showForm` → submit
+
+Steps 3 and 6 read the form's action, hidden fields and submit-button name off
+the live page rather than hardcoding them. That is what lets the same code serve
+different embassies and both visa types.
+
+## ⏰ Run it on a schedule
+
+Most embassies have no free slots most of the time, so this is meant to run
+repeatedly:
+
+```bash
+# every 30 minutes during business hours
+*/30 8-17 * * 1-5 cd /path/to/visa-termin-master && ./run.sh
+```
+
+Each run costs one captcha solve (a few hundredths of a cent). Don't run it every
+few seconds — you'll burn balance and hammer a government service.
+
+## 🎯 Use as a Python module
 
 ```python
 from lib.appointment_handler import AppointmentHandler
@@ -138,71 +160,95 @@ handler = AppointmentHandler("/path/to/project")
 handler.run_full_workflow(auto_book=True)
 ```
 
-## ⚙️ How It Works
+## 🏗️ Project structure
 
-1. **Fetch** - Downloads captcha page from consulate portal
-2. **Solve** - Extracts the captcha image and solves it through the 2Captcha API
-3. **Check** - Fetches available dates and checks against preferences
-4. **Notify** - Sends Telegram notification if date is acceptable
-5. **Book** (optional) - Automatically books the appointment
-
-## 🛠️ Customization
-
-### Change Date Filtering Logic
-
-Edit `lib/config.py`:
-
-```python
-def is_acceptable_date(month: int, day: int) -> bool:
-    # Example: June to August
-    if 6 <= month <= 8:
-        return True
-    return False
 ```
-
-### Add Email Notifications
-
-See [DEVELOPER.md](DEVELOPER.md) for examples on extending the codebase.
+visa-termin-master/
+├── lib/
+│   ├── config.py              # all settings, read from the environment
+│   ├── captcha_solver.py      # 2Captcha API client
+│   ├── appointment_handler.py # workflow orchestration + booking
+│   ├── extractors.py          # form/link discovery from live pages
+│   ├── booking_process.py     # portal detection + date parsing
+│   ├── utils.py               # HTML, logging, file helpers
+│   ├── notifications.py       # Telegram
+│   └── visa_types.py          # visa metadata (see Known limitations)
+├── tests/                     # pytest suite
+├── run.sh                     # entry point
+├── setup.sh                   # dependency install
+├── setenv.example             # configuration template
+└── log/log.txt
+```
 
 ## 🐛 Troubleshooting
 
-### Check logs for errors
 ```bash
 tail -f log/log.txt
 grep ERROR log/log.txt
 ```
 
-### Verify configuration
+**Check your resolved configuration:**
 ```bash
-python3 -c "from lib import config; print(f'URL: {config.CONSULATE_BASE_URL}')"
+python3 -c "from lib import config; print(config.CONSULATE_BASE_URL, config.VISA_TARGETS)"
 ```
 
-### Test individual components
+**Check your 2Captcha balance:**
 ```bash
-python3 lib/parse_response.py "$(pwd)"
-python3 lib/extract_captcha.py "$(pwd)" captchapage.html appointment_captcha_month
+python3 -c "from lib import captcha_solver; print(captcha_solver.get_solver().get_balance())"
 ```
 
-## ⚠️ Important Notes
+**Run the tests:**
+```bash
+python3 -m pytest tests/ -q
+```
 
-- ⚠️ **Test without auto-booking first** - Set `AUTO_BOOK=false` initially
-- ⚠️ **Never commit `.setenv`** - Add to `.gitignore` if in git repo
-- ⚠️ **Respect rate limits** - Don't check too frequently
-- ⚠️ **Verify credentials** - Test the Telegram bot and check your 2Captcha balance
+| Symptom | Cause |
+|---|---|
+| `CAPTCHA_API_KEY is not set` | No key in `setenv` |
+| `ERROR_ZERO_BALANCE` | Top up 2Captcha |
+| `Portal rejected the captcha` repeatedly | Normal at ~1 in 4; raise `CAPTCHA_MAX_ATTEMPTS` |
+| `403 Forbidden` | The portal blocks unknown clients; `USER_AGENT` must look like a browser |
+| `No acceptable date found` | Usually genuine — most embassies have no free slots |
+| `Form fields left empty: ...` | That category wants extra fields; use `APPLICANT_EXTRA_FIELDS` |
+
+## ⚠️ Known limitations
+
+- **Only the current month is checked.** The portal shows one month with
+  prev/next arrows, and the tool does not follow them. If your embassy releases
+  slots months ahead, they will not be seen even with a wide `LATEST_DATE`.
+- **The booking POST has not been exercised against a live form**, because that
+  requires an embassy with a genuinely free slot. Every step before the submit is
+  verified live; the submit itself is covered by tests using fixtures shaped like
+  the real pages. Dry-run mode exists for exactly this reason.
+- **`visa_types.py` is not wired into anything.** `VISA_TYPE` and
+  `EMBASSY_LOCATION` do not auto-configure category IDs — set
+  `LOCATION_CODE`/`REALM_ID`/`CATEGORY_ID` explicitly.
+- **Telegram send reports success from curl's exit code**, without reading the
+  API response, so a revoked token can look like a delivered message.
+
+## ⚠️ Before you use it
+
+- Set `AUTO_BOOK=false` (or keep `BOOKING_DRY_RUN=true`) until you trust it
+- Never commit `setenv` — it is gitignored, keep it that way
+- Book only appointments you intend to keep, and cancel via the link if plans
+  change. Deliberate misuse can get the applicant barred from the system.
+
+## 📚 Documentation
+
+- **[setenv.example](setenv.example)** — every setting, commented
+- **[DEVELOPER.md](DEVELOPER.md)** — developer guide
+- **[REFACTORING.md](REFACTORING.md)** — architecture notes
+
+## 📖 Resources
+
+- [German visa appointment portal](https://service2.diplo.de/rktermin/extern/)
+- [2Captcha API](https://2captcha.com/2captcha-api)
+- [Telegram Bot API](https://core.telegram.org/bots/api)
 
 ## 📝 License
 
-See [LICENSE](LICENSE) file
+See [LICENSE](LICENSE)
 
 ---
 
-## 📖 Additional Resources
-
-- [German Visa Appointment Portal](https://service2.diplo.de/rktermin/extern/)
-- [2Captcha API docs](https://2captcha.com/2captcha-api)
-- [Telegram Bot API](https://core.telegram.org/bots/api)
-
----
-
-**Version**: 2.0.0 (Refactored)
-**Last Updated**: August 2026
+**Last updated**: August 2026

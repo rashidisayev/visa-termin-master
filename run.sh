@@ -24,8 +24,15 @@ if [ -z "$ROOT_FOLDER" ]; then
     exit 1
 fi
 
-if [ -z "$CONSULATE_BASE_URL" ]; then
-    echo "ERROR: CONSULATE_BASE_URL not set in setenv"
+# CONSULATE_BASE_URL is optional - it defaults to the live portal.
+# What actually has to be set is which appointment to watch, and the solver key.
+if [ -z "$VISA_TARGETS" ] && { [ -z "$LOCATION_CODE" ] || [ -z "$REALM_ID" ] || [ -z "$CATEGORY_ID" ]; }; then
+    echo "ERROR: set LOCATION_CODE, REALM_ID and CATEGORY_ID (or VISA_TARGETS) in setenv"
+    exit 1
+fi
+
+if [ -z "$CAPTCHA_API_KEY" ]; then
+    echo "ERROR: CAPTCHA_API_KEY not set in setenv (get one at https://2captcha.com)"
     exit 1
 fi
 
@@ -65,33 +72,24 @@ main() {
     # Run the Python appointment handler
     log "Running appointment checking workflow..."
     
-    # Export variables for Python module
+    # setenv already exports everything it sets, so the Python module sees it.
+    # Only ROOT_FOLDER is re-exported here in case it was set on the command line.
     export ROOT_FOLDER
-    export CONSULATE_BASE_URL
-    export RESCHEDULING_BASE_URL
-    export BOOKING_BASE_URL
-    export HOST
-    export CONSULATE_DETAILS
-    export LOCATION_CODE
-    export REALM_ID
-    export CATEGORY_ID
-    export RESCHEDULING_TOKEN
-    export TELEGRAM_BOT_TOKEN
-    export TELEGRAM_CHAT_ID
-    export CAPTCHA_PROVIDER
-    export CAPTCHA_API_KEY
-    export CAPTCHA_TIMEOUT
-    
+
     # Determine auto-book mode
     AUTO_BOOK_FLAG=""
     if [ "$AUTO_BOOK" = "true" ] || [ "$AUTO_BOOK" = "1" ]; then
         AUTO_BOOK_FLAG="--auto-book"
     fi
-    
-    # Run Python handler
-    python3 lib/appointment_handler.py "$ROOT_FOLDER" $AUTO_BOOK_FLAG
-    RESULT=$?
-    
+
+    # Run Python handler. Guarded by "if" so that a non-zero exit does not trip
+    # "set -e" before the result can be captured and logged.
+    if python3 lib/appointment_handler.py "$ROOT_FOLDER" $AUTO_BOOK_FLAG; then
+        RESULT=0
+    else
+        RESULT=$?
+    fi
+
     log "========================================"
     log "Visa Appointment Helper Finished (Exit Code: $RESULT)"
     log "========================================"

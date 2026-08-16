@@ -1,0 +1,45 @@
+NOTICE
+======
+
+Origin of this project
+----------------------
+
+This repository began in September 2019 as a fork of an MIT-licensed project,
+copyright (c) 2018 Tapan Chandra.
+
+All of that original code has since been removed or rewritten. The original
+Python scripts (extract_captcha.py, parse_response.py, extract_booking_time.py,
+extract_resch_appt_url.py) and the bundled DeathByCaptcha binary were deleted;
+the shell scripts, README and requirements were rewritten and retain no
+substantive content from the original.
+
+The upstream MIT license is reproduced below in acknowledgement of that origin,
+and applies to any residual portion of the original work. Everything else is
+copyright (c) 2019-2026 Rashid Isayev and is licensed under the PolyForm
+Noncommercial License 1.0.0 - see LICENSE.
+
+-------------------------------------------------------------------------------
+Original upstream license
+-------------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2018 Tapan Chandra
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

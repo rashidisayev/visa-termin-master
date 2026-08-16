@@ -16,10 +16,11 @@ This is a **personal help tool**. It was written for applicants who struggle to
 fill in the appointment form correctly, or who cannot realistically sit and
 refresh a portal for weeks hoping to catch one of very few free slots.
 
-**It is not for sale and is not intended for commercial use.** Please do not use
-it to run a paid booking service, resell appointments, or otherwise profit from
-access to public appointment slots. Appointments at German missions are free of
-charge, and slots taken to be sold on are slots denied to people who need them.
+**It is not for sale, and commercial use is not permitted** — this is a licence
+condition, not just a request: see [License](#-license). Do not use it to run a
+paid booking service, resell appointments, or otherwise profit from access to
+public appointment slots. Appointments at German missions are free of charge,
+and slots taken to be sold on are slots denied to people who need them.
 
 Please also:
 
@@ -270,12 +271,17 @@ python3 -m pytest tests/ -q
 
 ## 📝 License
 
-See [LICENSE](LICENSE) — MIT, originating from the upstream project this is
-derived from.
+**[PolyForm Noncommercial License 1.0.0](LICENSE)** — free to use, modify and
+share for any **noncommercial** purpose. Commercial use is not permitted.
 
-Note that MIT permits commercial use. The request in
-[What this is for](#️-what-this-is-for) is the author's intent for the project,
-not an additional licence condition.
+That includes running it as part of a paid service, reselling appointments
+obtained with it, or charging for access to it or its output. Personal use,
+hobby projects, research, education, and use by charities, public bodies and
+similar organisations are all permitted.
+
+This project began in 2019 as a fork of an MIT-licensed project; all of that
+code has since been replaced. See [NOTICE](NOTICE) for the origin and the
+upstream attribution.
 
 ---
 

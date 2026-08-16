@@ -8,6 +8,7 @@ import os
 import subprocess
 import time
 from typing import Optional, Dict, Any
+from urllib.parse import unquote
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -196,112 +197,197 @@ class AppointmentHandler:
             self.logger.info("No acceptable appointment date found")
             return None
     
-    def book_appointment(self, available_date: str, captcha_solution: str) -> bool:
+    def _curl(self, url: str, output_file: str, post_fields: Optional[Dict[str, str]] = None) -> bool:
         """
-        Automatically book the appointment.
-        
+        Fetch a portal URL through curl, reusing the session cookie jar.
+
         Args:
-            available_date: Date to book
-            captcha_solution: Captcha solution for booking
-            
+            url: Absolute URL to request
+            output_file: Where to save the response body
+            post_fields: When given, POST these url-encoded fields instead of GET
+
         Returns:
-            True if booking successful, False otherwise
+            True if curl exited cleanly
+        """
+        cookies_path = os.path.join(self.root_folder, "target", "cookies")
+
+        cmd = ["curl", "-v", "-L", "-s", "-S", "-A", config.USER_AGENT]
+        if post_fields is not None:
+            cmd.append("-X")
+            cmd.append("POST")
+            for name, value in post_fields.items():
+                cmd += ["--data-urlencode", f"{name}={value}"]
+        cmd += ["-b", cookies_path, "-c", cookies_path, "-o", output_file, url]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            self.logger.error(f"Request failed ({url}): {result.stderr.strip()[:200]}")
+            return False
+        return True
+
+    def fetch_month_view(self) -> bool:
+        """
+        Reach the month view: fetch the captcha page, solve it, and submit.
+
+        Retries with a fresh captcha when the portal rejects the answer.
+        Solvers misread these captchas often enough that a single failure
+        would otherwise throw away a run - and possibly a free slot.
+
+        Returns:
+            True once the month view has been loaded
+        """
+        for attempt in range(1, config.CAPTCHA_MAX_ATTEMPTS + 1):
+            if not self.fetch_captcha_page():
+                return False
+
+            solution = self.solve_captcha("captchapage.html", config.CAPTCHA_SELECTOR_MONTH)
+            if not solution:
+                self.logger.warning(f"No solution on attempt {attempt}/{config.CAPTCHA_MAX_ATTEMPTS}")
+                continue
+
+            if not self.fetch_response_page(solution):
+                return False
+
+            if not extractors.captcha_was_rejected(self.root_folder):
+                return True
+
+            # Wrong answer: report it for a refund and try a fresh captcha.
+            self.logger.warning(
+                f"Portal rejected the captcha (attempt {attempt}/{config.CAPTCHA_MAX_ATTEMPTS})"
+            )
+            self.report_bad_captcha()
+
+        self.logger.error(f"Giving up after {config.CAPTCHA_MAX_ATTEMPTS} captcha attempts")
+        return False
+
+    def book_appointment(self, available_date: str) -> bool:
+        """
+        Book an appointment on the given date.
+
+        Walks the portal's own links rather than rebuilding URLs, so the
+        session survives every hop:
+
+            month view -> appointment_showDay -> appointment_showForm -> submit
+
+        Nothing here is specific to a visa category: the same flow serves
+        Schengen (C) and national (D) appointments, and the submit action is
+        read off the live form instead of being hardcoded.
+
+        Args:
+            available_date: Date to book, as DD.MM.YYYY
+
+        Returns:
+            True if the appointment was booked (or a dry run completed)
         """
         self.logger.info(f"Step 5: Booking appointment for {available_date}...")
-        
-        cookies_path = os.path.join(self.root_folder, "target", "cookies")
-        
-        # Get appointment scheduling page
-        url = f"{config.RESCHEDULING_BASE_URL}?{config.CONSULATE_DETAILS}&dateStr={available_date}&rebooking=true&token={config.RESCHEDULING_TOKEN}"
-        output_file = os.path.join(self.root_folder, "target", "appointmentschedulingpage.html")
-        
-        cmd = [
-            "curl", "-v", "-L", "-s", "-S",
-            "-b", cookies_path,
-            "-c", cookies_path,
-            "-o", output_file,
-            url
-        ]
-        
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                self.logger.error(f"Failed to fetch appointment page: {result.stderr}")
-                return False
-            
-            # Extract reschedule URL
-            resch_url = extractors.extract_reschedule_url(self.root_folder, "appointmentschedulingpage.html")
-            if not resch_url:
-                self.logger.error("Failed to extract reschedule URL")
-                return False
-            
-            full_url = f"{config.HOST}/{resch_url}"
-            self.logger.info(f"Reschedule URL: {full_url}")
-            
-            # Get final booking page
-            output_file = os.path.join(self.root_folder, "target", "bookfinalappt.html")
-            cmd = [
-                "curl", "-v", "-L", "-s", "-S",
-                "-b", cookies_path,
-                "-c", cookies_path,
-                "-o", output_file,
-                full_url
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                self.logger.error(f"Failed to fetch final booking page: {result.stderr}")
-                return False
-            
-            # Extract booking time
-            booking_time = extractors.extract_booking_time(self.root_folder, "bookfinalappt.html")
-            if not booking_time:
-                self.logger.error("Failed to extract booking time")
-                return False
-            
-            self.logger.info(f"Booking time: {booking_time}")
-            
-            # Solve captcha for booking
-            solution = self.solve_captcha("bookfinalappt.html", config.REBOOK_CAPTCHA_SELECTOR)
-            if not solution:
-                self.logger.error("Failed to solve booking captcha")
-                return False
-            
-            # Submit booking
-            self.logger.info(f"Submitting appointment booking for {available_date} at {booking_time}")
-            
-            cmd = [
-                "curl", "-X", "POST",
-                "-v", "-L", "-s", "-S",
-                "-F", "request_locale=en",
-                "-F", f"captchaText={solution}",
-                "-F", f"locationCode={config.LOCATION_CODE}",
-                "-F", f"realmId={config.REALM_ID}",
-                "-F", f"categoryId={config.CATEGORY_ID}",
-                "-F", f"date={available_date}",
-                "-F", f"dateStr={available_date}",
-                "-F", "rebooking=true",
-                "-F", f"token={config.RESCHEDULING_TOKEN}",
-                "-F", "action:appointment_rebookAppointment=Submit",
-                "-b", cookies_path,
-                "-c", cookies_path,
-                "-o", os.path.join(self.root_folder, "target", "bookingdone.html"),
-                config.BOOKING_BASE_URL
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                self.logger.info("Appointment successfully booked!")
-                notifications.notify_appointment_booked(available_date, booking_time)
-                return True
-            else:
-                self.logger.error(f"Failed to submit booking: {result.stderr}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Error booking appointment: {e}")
-            notifications.notify_error(str(e))
+
+        if not self._applicant_is_configured():
             return False
+
+        # 5a. Follow the day link for this date from the month view.
+        day_links = [
+            url for url in extractors.extract_links(self.root_folder, "response.html", "appointment_showDay.do")
+            if available_date in unquote(url)
+        ]
+        if not day_links:
+            self.logger.error(f"No day link found for {available_date} on the month view")
+            return False
+
+        day_page = os.path.join(self.root_folder, "target", "appointmentschedulingpage.html")
+        if not self._curl(day_links[0], day_page):
+            return False
+
+        # 5b. Pick a time slot on that day.
+        slot_links = extractors.extract_links(
+            self.root_folder, "appointmentschedulingpage.html", "appointment_showForm.do"
+        )
+        if not slot_links:
+            self.logger.error(f"No bookable time slots offered on {available_date}")
+            return False
+
+        self.logger.info(f"{len(slot_links)} slot(s) offered; taking the first")
+
+        # 5c-5e. Fill and submit the booking form. A misread captcha here would
+        # lose the slot itself, so retry with a freshly loaded form each time.
+        for attempt in range(1, config.CAPTCHA_MAX_ATTEMPTS + 1):
+            form_page = os.path.join(self.root_folder, "target", "bookfinalappt.html")
+            if not self._curl(slot_links[0], form_page):
+                return False
+
+            booking_time = extractors.extract_booking_time(self.root_folder, "bookfinalappt.html")
+            self.logger.info(f"Booking time: {booking_time or 'unknown'}")
+
+            solution = self.solve_captcha("bookfinalappt.html", None)
+            if not solution:
+                self.logger.warning(f"No booking captcha solution (attempt {attempt})")
+                continue
+
+            form = extractors.extract_form_context(self.root_folder, "bookfinalappt.html")
+            if not form:
+                self.logger.error("Could not read the booking form")
+                return False
+
+            submit = extractors.pick_submit_action(form["submits"])
+            if not submit:
+                self.logger.error(f"No submit button on the booking form: {form['submits']}")
+                return False
+
+            fields = dict(form["fields"])
+            fields.update({
+                "captchaText": solution,
+                "lastname": config.APPLICANT_LASTNAME,
+                "firstname": config.APPLICANT_FIRSTNAME,
+                "email": config.APPLICANT_EMAIL,
+            })
+            fields[submit[0]] = submit[1] or "Submit"
+
+            if config.BOOKING_DRY_RUN:
+                self._log_dry_run(form["action"], fields, available_date, booking_time)
+                return True
+
+            self.logger.info(
+                f"Submitting booking for {available_date} at {booking_time} via {submit[0]}"
+            )
+            done_page = os.path.join(self.root_folder, "target", "bookingdone.html")
+            if not self._curl(form["action"], done_page, post_fields=fields):
+                return False
+
+            if not extractors.captcha_was_rejected(self.root_folder, "bookingdone.html"):
+                self.logger.info("Appointment successfully booked!")
+                notifications.notify_appointment_booked(available_date, booking_time or "")
+                return True
+
+            self.logger.warning(f"Booking captcha rejected (attempt {attempt})")
+            self.report_bad_captcha()
+
+        self.logger.error("Could not book: captcha rejected on every attempt")
+        return False
+
+    def _applicant_is_configured(self) -> bool:
+        """Check that the details the portal writes into the booking are present."""
+        missing = [
+            name for name, value in (
+                ("APPLICANT_LASTNAME", config.APPLICANT_LASTNAME),
+                ("APPLICANT_FIRSTNAME", config.APPLICANT_FIRSTNAME),
+                ("APPLICANT_EMAIL", config.APPLICANT_EMAIL),
+            ) if not value
+        ]
+        if missing:
+            self.logger.error(f"Cannot book: {', '.join(missing)} not set")
+            return False
+        return True
+
+    def _log_dry_run(self, url: str, fields: Dict[str, str], date: str, time_str: Optional[str]) -> None:
+        """Report exactly what a real submission would have sent."""
+        self.logger.warning("=" * 60)
+        self.logger.warning("DRY RUN - the booking was NOT submitted")
+        self.logger.warning(f"  date : {date} {time_str or ''}")
+        self.logger.warning(f"  POST : {url}")
+        for name, value in fields.items():
+            shown = value if name != "captchaText" else f"{value} (solved)"
+            self.logger.warning(f"    {name} = {shown}")
+        self.logger.warning("Set BOOKING_DRY_RUN=false to book for real")
+        self.logger.warning("=" * 60)
     
     def run_full_workflow(self, auto_book: bool = False) -> bool:
         """
@@ -314,36 +400,17 @@ class AppointmentHandler:
             True if workflow completed successfully
         """
         try:
-            # Step 1: Fetch captcha page
-            if not self.fetch_captcha_page():
-                return False
-            
-            # Step 2: Solve captcha
-            captcha_solution = self.solve_captcha(
-                "captchapage.html",
-                config.CAPTCHA_SELECTOR_MONTH
-            )
-            if not captcha_solution:
-                return False
-            
-            # Step 3: Fetch response page
-            if not self.fetch_response_page(captcha_solution):
-                return False
-
-            # The portal rejects wrong captcha solutions - report those back to
-            # 2Captcha so they are refunded, and stop this run.
-            if extractors.captcha_was_rejected(self.root_folder):
-                self.logger.error("Portal rejected the captcha solution")
-                self.report_bad_captcha()
+            # Steps 1-3: reach the month view, retrying on a misread captcha
+            if not self.fetch_month_view():
                 return False
 
             # Step 4: Check for available dates
             available_date = self.check_and_notify_available_date()
             
             # Step 5: Auto-book if enabled and date available
-            if auto_book and available_date:
-                self.book_appointment(available_date, captcha_solution)
-            
+            if available_date and (auto_book or config.AUTO_BOOK):
+                self.book_appointment(available_date)
+
             self.logger.info("Workflow completed successfully")
             return True
             

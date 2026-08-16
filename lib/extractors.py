@@ -45,10 +45,92 @@ def extract_captcha_image(
     return success
 
 
+def _absolute(href: str) -> str:
+    """
+    Resolve a portal href against the application root.
+
+    The portal writes its links relative to /rktermin/ (e.g.
+    "extern/appointment_showDay.do?...") even though the page itself is served
+    from /rktermin/extern/, so resolving against the current page URL would
+    yield /rktermin/extern/extern/... and 404. Form actions are absolute paths
+    and resolve correctly either way.
+    """
+    return urljoin(config.HOST.rstrip("/") + "/", href)
+
+
+def extract_links(
+    root_folder: str,
+    html_file: str,
+    contains: str
+) -> list:
+    """
+    Collect every link on a saved page whose href contains a substring.
+
+    The booking flow navigates by following the portal's own links
+    (appointment_showDay.do, appointment_showForm.do) rather than by
+    reconstructing URLs, so the session and its parameters survive intact.
+
+    Args:
+        root_folder: Root folder path
+        html_file: Name of the saved HTML file
+        contains: Substring the href must contain
+
+    Returns:
+        De-duplicated list of absolute URLs, in page order
+    """
+    logger = utils.setup_logger()
+
+    html_content = utils.load_html_file(os.path.join(root_folder, "target", html_file))
+    if not html_content:
+        logger.error(f"Failed to load HTML file: {html_file}")
+        return []
+
+    urls = []
+    for anchor in html_content.find_all("a", href=True):
+        href = anchor["href"]
+        if contains in href:
+            absolute = _absolute(href)
+            if absolute not in urls:
+                urls.append(absolute)
+
+    logger.info(f"Found {len(urls)} link(s) matching '{contains}' in {html_file}")
+    return urls
+
+
+def pick_submit_action(submits: list) -> Optional[tuple]:
+    """
+    Choose the submit button that advances the booking.
+
+    Struts dispatches on the submit button's name, and that name differs
+    between flows (appointment_addAppointment when booking fresh,
+    appointment_rebookAppointment when rescheduling) and between portal
+    versions. Rather than hardcode one, discard the buttons that clearly do
+    not advance and take the most likely of the rest.
+
+    Args:
+        submits: List of (name, value) tuples from the form
+
+    Returns:
+        (name, value) of the chosen button, or None
+    """
+    skip = ("refreshcaptcha", "choose_category", "cancel", "abbrechen", "back", "zurueck")
+    candidates = [(n, v) for n, v in submits if not any(s in n.lower() for s in skip)]
+
+    if not candidates:
+        return None
+
+    for keyword in ("add", "book", "save", "confirm", "submit"):
+        for name, value in candidates:
+            if keyword in name.lower():
+                return name, value
+
+    return candidates[0]
+
+
 def extract_form_context(
     root_folder: str,
     html_file: str,
-    form_id: str
+    form_id: Optional[str] = None
 ) -> Optional[dict]:
     """
     Extract the submit target and hidden fields of a portal form.
@@ -63,10 +145,12 @@ def extract_form_context(
     Args:
         root_folder: Root folder path
         html_file: Name of the saved HTML file containing the form
-        form_id: ID of the form to read
+        form_id: ID of the form to read, or None to use the form holding
+            the captcha (ids differ between steps and visa categories)
 
     Returns:
-        Dict with 'action' (absolute URL) and 'fields' (dict), or None
+        Dict with 'action' (absolute URL), 'fields' (dict) and 'submits'
+        (list of (name, value) tuples), or None
     """
     logger = utils.setup_logger()
 
@@ -76,27 +160,35 @@ def extract_form_context(
         logger.error(f"Failed to load HTML file: {html_path}")
         return None
 
-    form = utils.find_element(html_content, "form", {"id": form_id})
+    form = utils.find_captcha_form(html_content, form_id)
     if not form:
-        logger.error(f"Form with id '{form_id}' not found in {html_file}")
+        logger.error(f"No form found in {html_file} (looked for id '{form_id}')")
         return None
 
     action = form.get("action") or ""
-    action_url = urljoin(config.CONSULATE_BASE_URL, action) if action else config.CONSULATE_BASE_URL
+    action_url = _absolute(action) if action else config.CONSULATE_BASE_URL
 
-    # Carry every non-submit field forward exactly as the browser would.
+    # Carry every non-submit field forward exactly as the browser would,
+    # and record the submit buttons so the caller can pick the dispatch one.
     fields = {}
+    submits = []
     for element in form.find_all(["input", "select", "textarea"]):
         name = element.get("name")
-        if not name or name.startswith("action:"):
+        if not name:
+            continue
+        if element.get("type") == "submit" or name.startswith("action:"):
+            submits.append((name, element.get("value") or ""))
             continue
         fields[name] = element.get("value") or ""
 
     if "jsessionid" not in action_url:
         logger.warning("Form action carries no jsessionid - session may not persist")
 
-    logger.info(f"Form '{form_id}' posts to {action_url.split('?')[0]} with {len(fields)} fields")
-    return {"action": action_url, "fields": fields}
+    logger.info(
+        f"Form '{form.get('id') or '?'}' posts to {action_url.split('?')[0]} "
+        f"with {len(fields)} fields and {len(submits)} submit button(s)"
+    )
+    return {"action": action_url, "fields": fields, "submits": submits}
 
 
 def captcha_was_rejected(

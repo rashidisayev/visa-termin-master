@@ -107,32 +107,60 @@ def save_file(filepath: str, content: bytes, mode: str = 'wb') -> bool:
         return False
 
 
-def extract_base64_image(html_content: Any, form_id: str, output_file: str) -> bool:
+def find_captcha_form(html_content: Any, form_id: Optional[str] = None) -> Optional[Any]:
     """
-    Extract base64 encoded image from HTML and save as JPG.
-    
+    Locate the form that holds the captcha.
+
+    Prefers an explicit id, but falls back to whichever form contains a
+    <captcha> element. The fallback matters because the form id differs
+    between steps and between visa categories (C and D), so nothing in the
+    booking flow can rely on a hardcoded id.
+
     Args:
         html_content: BeautifulSoup HTML object
-        form_id: ID of the form containing the captcha
+        form_id: Optional form id to look for first
+
+    Returns:
+        The form element, or None
+    """
+    if form_id:
+        form = html_content.find("form", {"id": form_id})
+        if form:
+            return form
+
+    for form in html_content.find_all("form"):
+        if form.find("captcha"):
+            return form
+
+    return None
+
+
+def extract_base64_image(html_content: Any, form_id: Optional[str], output_file: str) -> bool:
+    """
+    Extract base64 encoded image from HTML and save as JPG.
+
+    Args:
+        html_content: BeautifulSoup HTML object
+        form_id: ID of the form containing the captcha, or None to autodetect
         output_file: Path to save the extracted image
-        
+
     Returns:
         True if successful, False otherwise
     """
     logger = setup_logger()
-    
+
     try:
-        form = html_content.find("form", {"id": form_id})
+        form = find_captcha_form(html_content, form_id)
         if not form:
-            logger.error(f"Form with id '{form_id}' not found")
+            logger.error(f"No captcha form found (looked for id '{form_id}')")
             return False
-        
-        # Navigate to the image style attribute
-        captcha_div = form.find("div").find("captcha").find("div")
+
+        captcha_div = form.find("captcha")
+        captcha_div = captcha_div.find("div") if captcha_div else None
         if not captcha_div or 'style' not in captcha_div.attrs:
             logger.error("Captcha element not found or missing style attribute")
             return False
-        
+
         image_style = captcha_div['style']
         
         # Extract base64 string from CSS background.

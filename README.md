@@ -70,7 +70,9 @@ Create a `.setenv` file in the project root:
 
 ```bash
 export ROOT_FOLDER="$(pwd)"
-export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
+export LOCATION_CODE="kual"     # from the portal URL
+export REALM_ID="502"
+export CATEGORY_ID="1761"
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
 export CAPTCHA_API_KEY="your_2captcha_api_key"
@@ -196,7 +198,7 @@ See [LICENSE](LICENSE) file
 
 ## 📖 Additional Resources
 
-- [German Visa Portal](https://vis.diplo.de/)
+- [German Visa Appointment Portal](https://service2.diplo.de/rktermin/extern/)
 - [2Captcha API docs](https://2captcha.com/2captcha-api)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 

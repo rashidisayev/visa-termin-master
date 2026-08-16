@@ -29,8 +29,11 @@ export EMBASSY_LOCATION="kiew"
 #   - auto        : Monitor all visa types (advanced)
 export VISA_TYPE="schengen"
 
-# Base consulate URL (typically same for all visa types at an embassy)
-export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
+# Portal entry point. The default below is the live German appointment system
+# and is correct for every embassy - you normally do NOT need to change it.
+# (The old vis.diplo.de/rktermin/frontend/ address is dead: it redirects to a
+# generic Auswaertiges Amt page with no booking system behind it.)
+# export CONSULATE_BASE_URL="https://service2.diplo.de/rktermin/extern/appointment_showMonth.do"
 
 ################################################################################
 # Date Filtering Configuration
@@ -48,22 +51,39 @@ export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
 # to match your specific requirements
 
 ################################################################################
-# OPTIONAL: Override default category IDs (auto-detected by VISA_TYPE)
-# Only set these if your embassy uses non-standard IDs
+# WHICH APPOINTMENT TO WATCH  (REQUIRED)
+#
+# Works identically for Schengen (C) and national (D) visas - only the IDs
+# differ. Find yours by opening the portal in a browser and reading the URL:
+#
+#   https://service2.diplo.de/rktermin/extern/choose_realmList.do?locationCode=XXXX
+#
+# then click through to your visa category. The final URL contains all three:
+#   ...?locationCode=kual&realmId=502&categoryId=1761
 ################################################################################
 
-# Consulate Details (auto-set based on VISA_TYPE and EMBASSY_LOCATION)
-# export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
+export LOCATION_CODE="kual"     # embassy code from the portal URL
+export REALM_ID="502"           # visa section (differs between C and D)
+export CATEGORY_ID="1761"       # the specific visa category
 
-# Location Code (usually same as EMBASSY_LOCATION)
-# export LOCATION_CODE="kiew"
+# Watch SEVERAL categories in one run - e.g. a C and a D visa together.
+# Format: locationCode:realmId:categoryId, comma separated.
+# When set, this overrides the three variables above.
+# export VISA_TARGETS="kiew:561:1497,kiew:562:1785"
 
-# Realm ID (usually 561 for most embassies, but may vary)
-# export REALM_ID="561"
+################################################################################
+# WHICH DATES TO ACCEPT
+# Any appointment inside this window is taken. Format DD.MM.YYYY.
+################################################################################
 
-# Category ID (auto-set based on VISA_TYPE, but you can override)
-# For Kyiv: Schengen=1497, Work=1785, Study=1786, Family=1787, Residence=1788
-# export CATEGORY_ID="1497"
+# Earliest acceptable date (default: today)
+export EARLIEST_DATE=""
+
+# Latest acceptable date (default: no limit)
+export LATEST_DATE=""
+
+# Optional: restrict to certain weekdays (0=Mon .. 6=Sun)
+# export ACCEPTED_WEEKDAYS="0,1,2,3,4"
 
 ################################################################################
 # Telegram Notification Settings
@@ -116,13 +136,30 @@ export CAPTCHA_TIMEOUT="120"
 # export CAPTCHA_RESULT_URL="https://2captcha.com/res.php"
 
 ################################################################################
-# Optional: Auto-Booking Settings
+# AUTO-BOOKING
+#
+# READ THIS: a successful booking is a REAL appointment at a REAL consulate,
+# recorded under the applicant details below. There is no test mode on the
+# portal. Unattended bookings can get the applicant blocked from booking again.
 ################################################################################
 
-# Enable automatic booking of appointments (true/false)
-# WARNING: Only enable after testing the workflow thoroughly!
-# For D visas, carefully test with your specific requirements
+# Details written into the actual appointment record. Required to book.
+export APPLICANT_LASTNAME=""
+export APPLICANT_FIRSTNAME=""
+export APPLICANT_EMAIL=""
+
+# Book automatically as soon as an acceptable date is found (true/false)
 export AUTO_BOOK="false"
+
+# Dry run: walks the ENTIRE booking flow against the live portal - opens the
+# day, picks a slot, solves the booking captcha, builds the exact POST - then
+# stops without submitting and logs precisely what it would have sent.
+# Keep this "true" until you have seen a dry run succeed.
+export BOOKING_DRY_RUN="true"
+
+# How many times to retry a misread captcha before giving up.
+# Solvers miss roughly 1 in 4 of these, and one miss must not cost a free slot.
+export CAPTCHA_MAX_ATTEMPTS="3"
 
 ################################################################################
 # Optional: Advanced Settings

@@ -4,7 +4,9 @@ Centralized settings for URLs, selectors, logging, and notification channels.
 Supports multiple visa types with automatic detection and configuration.
 """
 import os
+from datetime import date, datetime
 from pathlib import Path
+from typing import Optional
 
 # Root folder
 ROOT_FOLDER = os.environ.get("ROOT_FOLDER", os.getcwd())
@@ -23,33 +25,92 @@ Path(LOG_FOLDER).mkdir(parents=True, exist_ok=True)
 # Embassy Location (e.g., 'kiew', 'berlin', 'moscow')
 EMBASSY_LOCATION = os.environ.get("EMBASSY_LOCATION", "kiew")
 
-# Visa Type to monitor (options: 'schengen', 'work', 'study', 'family', 'residence')
-# Set to 'auto' to monitor all available types
+# Visa Type label, for logging only. What actually selects the appointment is
+# the LOCATION_CODE / REALM_ID / CATEGORY_ID triple below.
 VISA_TYPE = os.environ.get("VISA_TYPE", "schengen")
 
-# Base consulate URL (typically same for all visa types at an embassy)
-CONSULATE_BASE_URL = os.environ.get("CONSULATE_BASE_URL", "https://vis.diplo.de/rktermin/frontend/")
-
 # ============================================================================
-# LEGACY CONFIGURATION - Override if needed for specific embassy
-# These are auto-set based on VISA_TYPE, but can be overridden
+# PORTAL CONFIGURATION
 # ============================================================================
 
 # Consul URL Configuration
-RESCHEDULING_BASE_URL = os.environ.get("RESCHEDULING_BASE_URL", "")
-BOOKING_BASE_URL = os.environ.get("BOOKING_BASE_URL", "")
-HOST = os.environ.get("HOST", "https://vis.diplo.de")
+# The live appointment system is service2.diplo.de/rktermin/extern/*.do -
+# every step is reached from the month view, so only the base entry point
+# and the host origin need to be configured.
+PORTAL_BASE = os.environ.get("PORTAL_BASE", "https://service2.diplo.de/rktermin/extern")
+CONSULATE_BASE_URL = os.environ.get(
+    "CONSULATE_BASE_URL", f"{PORTAL_BASE}/appointment_showMonth.do"
+)
+HOST = os.environ.get("HOST", "https://service2.diplo.de/rktermin")
 
 # Consulate Details - Auto-set based on VISA_TYPE or override here
-CONSULATE_DETAILS = os.environ.get("CONSULATE_DETAILS", "")
 LOCATION_CODE = os.environ.get("LOCATION_CODE", EMBASSY_LOCATION)
-REALM_ID = os.environ.get("REALM_ID", "561")
+REALM_ID = os.environ.get("REALM_ID", "")
 
-# Category ID - varies by visa type and embassy
-# For Kyiv: Schengen=1497, Work=1785, Study=1786, Family=1787, Residence=1788
-CATEGORY_ID = os.environ.get("CATEGORY_ID", "1497")
+# Category ID - varies by visa type and embassy.
+# Works for both Schengen (C) and national (D) visas: the portal uses the
+# same booking flow for every category, only these IDs differ.
+CATEGORY_ID = os.environ.get("CATEGORY_ID", "")
+
+CONSULATE_DETAILS = os.environ.get(
+    "CONSULATE_DETAILS",
+    f"locationCode={LOCATION_CODE}&realmId={REALM_ID}&categoryId={CATEGORY_ID}",
+)
+
+
+def _parse_targets() -> list:
+    """
+    Build the list of appointment targets to monitor.
+
+    VISA_TARGETS lets one run watch several categories at once - typically a
+    C (Schengen) and a D (national) category, which usually sit under
+    different realmIds:
+
+        VISA_TARGETS="kiew:561:1497,kiew:562:1785"
+
+    Falls back to the single LOCATION_CODE/REALM_ID/CATEGORY_ID triple.
+    """
+    raw = os.environ.get("VISA_TARGETS", "").strip()
+    targets = []
+
+    if raw:
+        for entry in raw.split(","):
+            parts = [p.strip() for p in entry.split(":")]
+            if len(parts) != 3 or not all(parts):
+                continue
+            targets.append({
+                "locationCode": parts[0], "realmId": parts[1], "categoryId": parts[2],
+            })
+
+    if not targets and LOCATION_CODE and REALM_ID and CATEGORY_ID:
+        targets.append({
+            "locationCode": LOCATION_CODE, "realmId": REALM_ID, "categoryId": CATEGORY_ID,
+        })
+
+    return targets
+
+
+VISA_TARGETS = _parse_targets()
 
 RESCHEDULING_TOKEN = os.environ.get("RESCHEDULING_TOKEN", "")
+
+# ============================================================================
+# Booking Settings
+# ============================================================================
+
+# Applicant details written into the actual appointment record.
+# Required for auto-booking; the portal will not accept an empty form.
+APPLICANT_LASTNAME = os.environ.get("APPLICANT_LASTNAME", "")
+APPLICANT_FIRSTNAME = os.environ.get("APPLICANT_FIRSTNAME", "")
+APPLICANT_EMAIL = os.environ.get("APPLICANT_EMAIL", "")
+
+# Book automatically when an acceptable date is found
+AUTO_BOOK = os.environ.get("AUTO_BOOK", "false").lower() in ("true", "1", "yes")
+
+# Dry run: walk the entire booking flow against the live portal, solve the
+# booking captcha, build the exact POST body - then stop without submitting.
+# Leave this on until you have seen a dry run succeed.
+BOOKING_DRY_RUN = os.environ.get("BOOKING_DRY_RUN", "true").lower() in ("true", "1", "yes")
 
 # The portal rejects unknown clients with 403, so identify as a browser
 USER_AGENT = os.environ.get(
@@ -99,6 +160,11 @@ CAPTCHA_MAX_LENGTH = int(os.environ.get("CAPTCHA_MAX_LENGTH", "0"))
 # Report unusable solutions back to 2Captcha so they are refunded
 CAPTCHA_REPORT_BAD = os.environ.get("CAPTCHA_REPORT_BAD", "true").lower() in ("true", "1", "yes")
 
+# Solvers misread these captchas a fair fraction of the time (measured around
+# 1 in 4 against the live portal). A single miss must not cost a free slot, so
+# retry with a fresh captcha before giving up.
+CAPTCHA_MAX_ATTEMPTS = int(os.environ.get("CAPTCHA_MAX_ATTEMPTS", "3"))
+
 # Pipe-separated phrases that mean the portal rejected the captcha solution.
 # These are the exact strings the RK-Termin portal returns (verified live):
 #   DE: "Der eingegebene Text ist falsch"
@@ -113,25 +179,66 @@ CAPTCHA_ERROR_MARKERS = [
     if marker.strip()
 ]
 
-# Date Filtering Logic - customize this for your needs
-def is_acceptable_date(month: int, day: int) -> bool:
+# ============================================================================
+# Date Filtering
+# ============================================================================
+
+# Accept any appointment inside this window, as DD.MM.YYYY.
+# EARLIEST defaults to today, LATEST to "no upper bound".
+EARLIEST_DATE = os.environ.get("EARLIEST_DATE", "").strip()
+LATEST_DATE = os.environ.get("LATEST_DATE", "").strip()
+
+# Optional: only accept these weekdays (0=Monday .. 6=Sunday), e.g. "0,1,2"
+ACCEPTED_WEEKDAYS = [
+    int(d) for d in os.environ.get("ACCEPTED_WEEKDAYS", "").split(",") if d.strip().isdigit()
+]
+
+
+def _parse_date(value: str) -> Optional[date]:
+    """Parse a DD.MM.YYYY string, returning None if it is empty or malformed."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%d.%m.%Y").date()
+    except ValueError:
+        return None
+
+
+def is_acceptable_date(month: int, day: int, year: Optional[int] = None) -> bool:
     """
-    Determine if the available date should trigger a notification.
-    Customize this logic according to your requirements.
-    
+    Decide whether an offered appointment date should be taken.
+
+    Driven entirely by EARLIEST_DATE / LATEST_DATE / ACCEPTED_WEEKDAYS so the
+    same code works for Schengen (C) and national (D) appointments without
+    editing this file.
+
     Args:
         month: Month as integer (1-12)
         day: Day as integer (1-31)
-        
+        year: Four-digit year. Required for a correct comparison; when it is
+            omitted the current year is assumed, which is why callers should
+            always pass it.
+
     Returns:
-        True if date should trigger notification, False otherwise
+        True if the date falls inside the configured window
     """
-    # Example: March after 24th or April before 24th
-    if month == 3 and day > 24:
-        return True
-    if month == 4 and day < 24:
-        return True
-    return False
+    try:
+        candidate = date(year or date.today().year, month, day)
+    except ValueError:
+        return False
+
+    earliest = _parse_date(EARLIEST_DATE) or date.today()
+    if candidate < earliest:
+        return False
+
+    latest = _parse_date(LATEST_DATE)
+    if latest and candidate > latest:
+        return False
+
+    if ACCEPTED_WEEKDAYS and candidate.weekday() not in ACCEPTED_WEEKDAYS:
+        return False
+
+    return True
 
 
 # Logging Configuration

@@ -3,6 +3,7 @@ Booking process adapter for German visa appointments.
 Auto-detects and adapts to different embassy portal layouts and booking processes.
 Supports both legacy and new German embassy appointment systems.
 """
+from datetime import date
 from typing import Optional, Dict, List, Any, TYPE_CHECKING
 
 from . import utils, config
@@ -265,12 +266,13 @@ class PortalLayoutAdapter:
                 try:
                     day = int(date_tokens[0])
                     month = int(date_tokens[1])
-                    
-                    if config_obj.is_acceptable_date(month, day):
+                    year = int(date_tokens[2])
+
+                    if config_obj.is_acceptable_date(month, day, year):
                         available_date = '.'.join(date_tokens)
                         self.logger.info(f"Found acceptable date (legacy): {available_date}")
                         return available_date
-                        
+
                 except ValueError:
                     continue
             
@@ -310,10 +312,10 @@ class PortalLayoutAdapter:
                     try:
                         day = int(parts[0]) if len(parts[0]) <= 2 else int(parts[1])
                         month = int(parts[1]) if len(parts[1]) <= 2 else int(parts[0])
-                        
-                        if config_obj.is_acceptable_date(month, day):
+                        year = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else date.today().year
+
+                        if config_obj.is_acceptable_date(month, day, year):
                             # Reconstruct date in DD.MM.YYYY format
-                            year = parts[2] if len(parts) > 2 else "2024"
                             available_date = f"{day:02d}.{month:02d}.{year}"
                             self.logger.info(f"Found acceptable date (new): {available_date}")
                             return available_date
@@ -350,9 +352,9 @@ class PortalLayoutAdapter:
                         try:
                             day = int(parts[0])
                             month = int(parts[1])
-                            
-                            if config_obj.is_acceptable_date(month, day):
-                                year = parts[2] if len(parts) > 2 else "2024"
+                            year = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else date.today().year
+
+                            if config_obj.is_acceptable_date(month, day, year):
                                 available_date = f"{day:02d}.{month:02d}.{year}"
                                 self.logger.info(f"Found acceptable date (Doctolib): {available_date}")
                                 return available_date
@@ -388,10 +390,10 @@ class PortalLayoutAdapter:
                                     d = int(parts[day])
                                     m = int(parts[month])
                                     
+                                    y = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else date.today().year
                                     if 1 <= d <= 31 and 1 <= m <= 12:
-                                        if config_obj.is_acceptable_date(m, d):
-                                            year = parts[2] if len(parts) > 2 else "2024"
-                                            available_date = f"{d:02d}.{m:02d}.{year}"
+                                        if config_obj.is_acceptable_date(m, d, y):
+                                            available_date = f"{d:02d}.{m:02d}.{y}"
                                             self.logger.info(f"Found acceptable date (generic): {available_date}")
                                             return available_date
                                 except (ValueError, IndexError):

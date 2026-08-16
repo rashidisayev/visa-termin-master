@@ -332,13 +332,8 @@ class AppointmentHandler:
                 self.logger.error(f"No submit button on the booking form: {form['submits']}")
                 return False
 
-            fields = dict(form["fields"])
-            fields.update({
-                "captchaText": solution,
-                "lastname": config.APPLICANT_LASTNAME,
-                "firstname": config.APPLICANT_FIRSTNAME,
-                "email": config.APPLICANT_EMAIL,
-            })
+            fields = self._fill_applicant_fields(form["fields"])
+            fields["captchaText"] = solution
             fields[submit[0]] = submit[1] or "Submit"
 
             if config.BOOKING_DRY_RUN:
@@ -363,6 +358,48 @@ class AppointmentHandler:
         self.logger.error("Could not book: captcha rejected on every attempt")
         return False
 
+    def _fill_applicant_fields(self, form_fields: Dict[str, str]) -> Dict[str, str]:
+        """
+        Fill the applicant's details into whatever the live form happens to ask for.
+
+        Field names vary by embassy and visa category, so match loosely on the
+        name rather than assuming a fixed set. Any field left empty is logged:
+        that is how an unexpected required field (a passport number, a date of
+        birth) shows up in a dry run instead of failing a real booking.
+
+        Args:
+            form_fields: Fields as read from the live form
+
+        Returns:
+            A new dict with the applicant's values filled in
+        """
+        fields = dict(form_fields)
+
+        for name in list(fields):
+            lowered = name.lower()
+
+            if name in config.APPLICANT_EXTRA_FIELDS:
+                fields[name] = config.APPLICANT_EXTRA_FIELDS[name]
+                continue
+
+            for hint, value in config.APPLICANT_FIELD_HINTS.items():
+                if hint in lowered and value:
+                    fields[name] = value
+                    break
+
+        # Anything the portal asked for that we could not fill.
+        unfilled = [
+            name for name, value in fields.items()
+            if not value and name not in ("captchaText", "token", "rebooking")
+        ]
+        if unfilled:
+            self.logger.warning(
+                f"Form fields left empty: {', '.join(unfilled)} - "
+                f"if the booking is rejected, set them via APPLICANT_EXTRA_FIELDS"
+            )
+
+        return fields
+
     def _applicant_is_configured(self) -> bool:
         """Check that the details the portal writes into the booking are present."""
         missing = [
@@ -370,6 +407,7 @@ class AppointmentHandler:
                 ("APPLICANT_LASTNAME", config.APPLICANT_LASTNAME),
                 ("APPLICANT_FIRSTNAME", config.APPLICANT_FIRSTNAME),
                 ("APPLICANT_EMAIL", config.APPLICANT_EMAIL),
+                ("APPLICANT_PASSPORT", config.APPLICANT_PASSPORT),
             ) if not value
         ]
         if missing:

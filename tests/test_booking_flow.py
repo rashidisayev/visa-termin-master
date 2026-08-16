@@ -51,12 +51,51 @@ BOOKING_FORM = f"""
   <input type="text" name="lastname" value=""/>
   <input type="text" name="firstname" value=""/>
   <input type="text" name="email" value=""/>
+  <input type="text" name="passportNumber" value=""/>
   <input type="submit" name="action:appointment_refreshCaptcha" value="Neues Bild laden"/>
   <input type="submit" name="action:appointment_addAppointment" value="Termin buchen"/>
   <input type="submit" name="action:choose_category" value="Abbrechen"/>
 </form>
 </fieldset></div></div></body></html>
 """
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def applicant(**overrides):
+    """Patch the applicant details the booking requires."""
+    values = {
+        "APPLICANT_LASTNAME": "Isayev",
+        "APPLICANT_FIRSTNAME": "Rashid",
+        "APPLICANT_EMAIL": "r@example.com",
+        "APPLICANT_PASSPORT": "C01548134",
+    }
+    values.update(overrides)
+    patches = [patch.object(config, k, v) for k, v in values.items()]
+    hints = dict(config.APPLICANT_FIELD_HINTS)
+    hints.update({
+        "lastname": values["APPLICANT_LASTNAME"], "surname": values["APPLICANT_LASTNAME"],
+        "firstname": values["APPLICANT_FIRSTNAME"], "givenname": values["APPLICANT_FIRSTNAME"],
+        "email": values["APPLICANT_EMAIL"],
+        "passport": values["APPLICANT_PASSPORT"], "passno": values["APPLICANT_PASSPORT"],
+    })
+    patches.append(patch.object(config, "APPLICANT_FIELD_HINTS", hints))
+    for p in patches:
+        p.start()
+    try:
+        yield
+    finally:
+        for p in patches:
+            p.stop()
+
+
+@pytest.fixture
+def booking_config():
+    """Applicant details present, as they must be for any booking."""
+    with applicant():
+        yield
 
 
 @pytest.fixture
@@ -164,12 +203,9 @@ class TestBookingFlow:
         from lib.appointment_handler import AppointmentHandler
         return AppointmentHandler(root_folder=str(target))
 
-    def test_dry_run_does_not_submit(self, target):
+    def test_dry_run_does_not_submit(self, target, booking_config):
         h = self._handler(target)
         with patch.object(config, "BOOKING_DRY_RUN", True), \
-             patch.object(config, "APPLICANT_LASTNAME", "Isayev"), \
-             patch.object(config, "APPLICANT_FIRSTNAME", "Rashid"), \
-             patch.object(config, "APPLICANT_EMAIL", "r@example.com"), \
              patch.object(h, "_curl", return_value=True) as curl, \
              patch.object(h, "solve_captcha", return_value="ab12cd"):
             assert h.book_appointment("03.09.2026") is True
@@ -178,12 +214,9 @@ class TestBookingFlow:
         assert curl.call_count == 2
         assert all(c.kwargs.get("post_fields") is None for c in curl.call_args_list)
 
-    def test_real_booking_posts_expected_payload(self, target):
+    def test_real_booking_posts_expected_payload(self, target, booking_config):
         h = self._handler(target)
         with patch.object(config, "BOOKING_DRY_RUN", False), \
-             patch.object(config, "APPLICANT_LASTNAME", "Isayev"), \
-             patch.object(config, "APPLICANT_FIRSTNAME", "Rashid"), \
-             patch.object(config, "APPLICANT_EMAIL", "r@example.com"), \
              patch.object(h, "_curl", return_value=True) as curl, \
              patch.object(h, "solve_captcha", return_value="ab12cd"), \
              patch("lib.appointment_handler.extractors.captcha_was_rejected", return_value=False), \
@@ -199,31 +232,54 @@ class TestBookingFlow:
         assert fields["email"] == "r@example.com"
         assert fields["dateStr"] == "03.09.2026"
 
-    def test_refuses_to_book_without_applicant_details(self, target):
+    def test_fills_passport_number(self, target, booking_config):
+        """The Kyiv confirmation mail shows the form records a passport number."""
         h = self._handler(target)
-        with patch.object(config, "APPLICANT_LASTNAME", ""), \
-             patch.object(config, "APPLICANT_FIRSTNAME", ""), \
-             patch.object(config, "APPLICANT_EMAIL", ""), \
-             patch.object(h, "_curl") as curl:
+        with patch.object(config, "BOOKING_DRY_RUN", False), \
+             patch.object(h, "_curl", return_value=True) as curl, \
+             patch.object(h, "solve_captcha", return_value="ab12cd"), \
+             patch("lib.appointment_handler.extractors.captcha_was_rejected", return_value=False), \
+             patch("lib.appointment_handler.notifications.notify_appointment_booked"):
+            assert h.book_appointment("03.09.2026") is True
+
+        fields = curl.call_args_list[-1].kwargs["post_fields"]
+        assert fields["passportNumber"] == "C01548134"
+        assert fields["firstname"] == "Rashid"
+
+    def test_extra_fields_cover_unknown_form_inputs(self, target, booking_config):
+        h = self._handler(target)
+        with patch.object(config, "BOOKING_DRY_RUN", False), \
+             patch.object(config, "APPLICANT_EXTRA_FIELDS", {"passportNumber": "OVERRIDE1"}), \
+             patch.object(h, "_curl", return_value=True) as curl, \
+             patch.object(h, "solve_captcha", return_value="ab12cd"), \
+             patch("lib.appointment_handler.extractors.captcha_was_rejected", return_value=False), \
+             patch("lib.appointment_handler.notifications.notify_appointment_booked"):
+            assert h.book_appointment("03.09.2026") is True
+
+        assert curl.call_args_list[-1].kwargs["post_fields"]["passportNumber"] == "OVERRIDE1"
+
+    def test_refuses_to_book_without_passport(self, target):
+        h = self._handler(target)
+        with applicant(APPLICANT_PASSPORT=""), patch.object(h, "_curl") as curl:
             assert h.book_appointment("03.09.2026") is False
             curl.assert_not_called()
 
-    def test_stops_when_date_has_no_day_link(self, target):
+    def test_refuses_to_book_without_applicant_details(self, target):
         h = self._handler(target)
-        with patch.object(config, "APPLICANT_LASTNAME", "X"), \
-             patch.object(config, "APPLICANT_FIRSTNAME", "Y"), \
-             patch.object(config, "APPLICANT_EMAIL", "z@example.com"), \
-             patch.object(h, "_curl") as curl:
+        with patch.object(h, "_curl") as curl:
+            assert h.book_appointment("03.09.2026") is False
+            curl.assert_not_called()
+
+    def test_stops_when_date_has_no_day_link(self, target, booking_config):
+        h = self._handler(target)
+        with patch.object(h, "_curl") as curl:
             assert h.book_appointment("01.01.2030") is False
             curl.assert_not_called()
 
-    def test_gives_up_after_max_attempts_reporting_each_miss(self, target):
+    def test_gives_up_after_max_attempts_reporting_each_miss(self, target, booking_config):
         h = self._handler(target)
         with patch.object(config, "BOOKING_DRY_RUN", False), \
              patch.object(config, "CAPTCHA_MAX_ATTEMPTS", 3), \
-             patch.object(config, "APPLICANT_LASTNAME", "X"), \
-             patch.object(config, "APPLICANT_FIRSTNAME", "Y"), \
-             patch.object(config, "APPLICANT_EMAIL", "z@example.com"), \
              patch.object(h, "_curl", return_value=True), \
              patch.object(h, "solve_captcha", return_value="wrong"), \
              patch("lib.appointment_handler.extractors.captcha_was_rejected", return_value=True), \
@@ -231,14 +287,11 @@ class TestBookingFlow:
             assert h.book_appointment("03.09.2026") is False
             assert report.call_count == 3  # every miss refunded
 
-    def test_books_on_second_attempt_after_a_misread(self, target):
+    def test_books_on_second_attempt_after_a_misread(self, target, booking_config):
         """A single bad captcha must not cost the slot."""
         h = self._handler(target)
         with patch.object(config, "BOOKING_DRY_RUN", False), \
              patch.object(config, "CAPTCHA_MAX_ATTEMPTS", 3), \
-             patch.object(config, "APPLICANT_LASTNAME", "X"), \
-             patch.object(config, "APPLICANT_FIRSTNAME", "Y"), \
-             patch.object(config, "APPLICANT_EMAIL", "z@example.com"), \
              patch.object(h, "_curl", return_value=True), \
              patch.object(h, "solve_captcha", side_effect=["wrong", "right"]), \
              patch("lib.appointment_handler.extractors.captcha_was_rejected", side_effect=[True, False]), \

@@ -143,10 +143,21 @@ export CAPTCHA_TIMEOUT="120"
 # portal. Unattended bookings can get the applicant blocked from booking again.
 ################################################################################
 
-# Details written into the actual appointment record. Required to book.
+# Details written into the actual appointment record. All required to book.
 export APPLICANT_LASTNAME=""
 export APPLICANT_FIRSTNAME=""
+
+# The confirmation mail goes here. It carries the cancellation link, which is
+# the ONLY way to cancel - keep access to this mailbox.
 export APPLICANT_EMAIL=""
+
+# Must be the real passport number: it is printed on the confirmation, checked
+# at the door, and blocked from future bookings after a no-show.
+export APPLICANT_PASSPORT=""
+
+# Some categories ask for extra fields. If a dry run warns that fields were
+# left empty, supply them here as name=value pairs:
+# export APPLICANT_EXTRA_FIELDS="birthDate=01.01.1990,phone=+4915112345678"
 
 # Book automatically as soon as an acceptable date is found (true/false)
 export AUTO_BOOK="false"

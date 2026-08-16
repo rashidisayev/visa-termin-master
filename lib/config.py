@@ -104,6 +104,35 @@ APPLICANT_LASTNAME = os.environ.get("APPLICANT_LASTNAME", "")
 APPLICANT_FIRSTNAME = os.environ.get("APPLICANT_FIRSTNAME", "")
 APPLICANT_EMAIL = os.environ.get("APPLICANT_EMAIL", "")
 
+# The passport number is written into the booking and is what the mission
+# blocks after a no-show, so it must be the real one. Confirmed present on
+# the Kyiv national-visa form ("Is your passport number ... correct?").
+APPLICANT_PASSPORT = os.environ.get("APPLICANT_PASSPORT", "")
+
+# Some categories ask for extra fields. Anything the form wants that is not
+# covered above can be supplied here as name=value pairs, comma separated:
+#   APPLICANT_EXTRA_FIELDS="birthDate=01.01.1990,phone=+4915112345678"
+APPLICANT_EXTRA_FIELDS = {
+    key.strip(): value.strip()
+    for key, _, value in (
+        pair.partition("=") for pair in os.environ.get("APPLICANT_EXTRA_FIELDS", "").split(",")
+    )
+    if key.strip() and value.strip()
+}
+
+# Field names are matched loosely because they differ between categories and
+# embassies: any form field whose name contains one of these substrings gets
+# the corresponding value.
+APPLICANT_FIELD_HINTS = {
+    "lastname": APPLICANT_LASTNAME,
+    "surname": APPLICANT_LASTNAME,
+    "firstname": APPLICANT_FIRSTNAME,
+    "givenname": APPLICANT_FIRSTNAME,
+    "email": APPLICANT_EMAIL,
+    "passport": APPLICANT_PASSPORT,
+    "passno": APPLICANT_PASSPORT,
+}
+
 # Book automatically when an acceptable date is found
 AUTO_BOOK = os.environ.get("AUTO_BOOK", "false").lower() in ("true", "1", "yes")
 

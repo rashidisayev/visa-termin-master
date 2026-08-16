@@ -135,8 +135,14 @@ def extract_base64_image(html_content: Any, form_id: str, output_file: str) -> b
         
         image_style = captcha_div['style']
         
-        # Extract base64 string from CSS background
-        match = re.match(r"background:white url\('data:image/jpg;base64,(.+?)'\).*", image_style)
+        # Extract base64 string from CSS background.
+        # The portal declares the MIME type inconsistently (it currently sends
+        # 'image/png' for what are actually JPEG bytes), so accept any type and
+        # let the decoded data speak for itself.
+        match = re.match(
+            r"background:\s*\w+\s+url\('data:image/(?:jpe?g|png|gif);base64,(.+?)'\)",
+            image_style
+        )
         if not match:
             logger.error("Failed to extract base64 image from style attribute")
             return False

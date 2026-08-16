@@ -180,13 +180,18 @@ class TestAppointmentHandlerIntegration:
         solver.report_bad.assert_called_once()
         assert handler.last_solver is None
 
-    def test_captcha_rejection_detected_in_response_page(self, tmp_path):
+    @pytest.mark.parametrize("message", [
+        # Exact wording returned by the live RK-Termin portal
+        "Der eingegebene Text ist falsch",
+        "The entered text was wrong",
+    ])
+    def test_captcha_rejection_detected_in_response_page(self, tmp_path, message):
         from lib import extractors
 
         target = tmp_path / "target"
         target.mkdir()
         (target / "response.html").write_text(
-            "<html><body>Der Sicherheitscode wurde nicht korrekt eingegeben.</body></html>",
+            f"<html><body><div class='error'>{message}</div></body></html>",
             encoding="utf-8",
         )
 

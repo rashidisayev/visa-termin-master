@@ -90,13 +90,15 @@ CAPTCHA_MAX_LENGTH = int(os.environ.get("CAPTCHA_MAX_LENGTH", "0"))
 CAPTCHA_REPORT_BAD = os.environ.get("CAPTCHA_REPORT_BAD", "true").lower() in ("true", "1", "yes")
 
 # Pipe-separated phrases that mean the portal rejected the captcha solution.
+# These are the exact strings the RK-Termin portal returns (verified live):
+#   DE: "Der eingegebene Text ist falsch"
+#   EN: "The entered text was wrong"
 # Extend this if your embassy's portal words the error differently.
 CAPTCHA_ERROR_MARKERS = [
     marker.strip().lower()
     for marker in os.environ.get(
         "CAPTCHA_ERROR_MARKERS",
-        "nicht korrekt eingegeben|zeichenfolge wurde nicht|sicherheitscode|"
-        "entered text was not correct|code is not correct|captcha is not correct",
+        "eingegebene text ist falsch|entered text was wrong",
     ).split("|")
     if marker.strip()
 ]

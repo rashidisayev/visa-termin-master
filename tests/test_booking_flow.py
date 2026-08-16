@@ -329,6 +329,113 @@ class TestMonthViewRetry:
             assert h.fetch_month_view() is False
 
 
+# Shaped like the live Baku national-visa form: the applicant's passport,
+# birth date, purpose and phone are embassy-defined fields with meaningless
+# names, each paired with hidden definitionId/index companions.
+BAKU_FORM = f"""
+<html><body><div id="content"><div><fieldset><div>x</div><div>18.08.2026 08:30</div>
+<form id="appointment_newAppointmentForm"
+      action="/rktermin/extern/appointment_showForm.do" method="post">
+  <div><captcha><div style="background:white url('data:image/png;base64,{'QUJD' * 4}')"></div></captcha></div>
+  <p>Nachname:</p><input type="text" name="lastname" value=""/>
+  <p>Vorname:</p><input type="text" name="firstname" value=""/>
+  <p>E-Mail:</p><input type="text" name="email" value=""/>
+  <p>E-Mail wiederholen:</p><input type="text" name="emailrepeat" value=""/>
+  <p>Xarici Pasportun n&#601;mr&#601;si/Reisepass-Nr./Passport No:</p>
+  <input type="text" name="fields[0].content" value=""/>
+  <input type="hidden" name="fields[0].definitionId" value="672"/>
+  <input type="hidden" name="fields[0].index" value="0"/>
+  <p>Geburtsdatum / Do&#287;um tarixi / Date of Birth:</p>
+  <input type="text" name="fields1content" value=""/>
+  <input type="hidden" name="fields[1].definitionId" value="697"/>
+  <input type="hidden" name="fields[1].index" value="1"/>
+  <p>S&#601;f&#601;rin m&#601;qs&#601;di / Reisezweck / Purpose of the Journey:</p>
+  <select name="fields[2].content">
+    <option value=""></option>
+    <option value="Ail&#601; birl&#601;&#351;m&#601;si / Familienzusammenf&uuml;hrung / family reunion">Ail&#601; birl&#601;&#351;m&#601;si / Familienzusammenf&uuml;hrung / family reunion</option>
+    <option value="Au pair">Au pair</option>
+  </select>
+  <input type="hidden" name="fields[2].definitionId" value="682"/>
+  <input type="hidden" name="fields[2].index" value="2"/>
+  <p>Telefonnummer / telefon n&#246;mr&#601;si / Telephone No:</p>
+  <input type="text" name="fields[3].content" value=""/>
+  <input type="hidden" name="fields[3].definitionId" value="718"/>
+  <input type="hidden" name="fields[3].index" value="3"/>
+  <input type="text" name="captchaText" value=""/>
+  <input type="submit" name="action:appointment_addAppointment" value="Speichern"/>
+</form></fieldset></div></div></body></html>
+"""
+
+
+class TestEmbassyDefinedFields:
+    """Baku names the applicant's fields "fields[0].content" etc; only the
+    label says what they are."""
+
+    @pytest.fixture
+    def baku(self, tmp_path):
+        t = tmp_path / "target"
+        t.mkdir()
+        (t / "response.html").write_text(MONTH_PAGE, encoding="utf-8")
+        (t / "appointmentschedulingpage.html").write_text(DAY_PAGE, encoding="utf-8")
+        (t / "bookfinalappt.html").write_text(BAKU_FORM, encoding="utf-8")
+        return tmp_path
+
+    def _fill(self, baku, **over):
+        from lib.appointment_handler import AppointmentHandler
+        form = extractors.extract_form_context(str(baku), "bookfinalappt.html")
+        with applicant(), \
+             patch.object(config, "APPLICANT_BIRTHDATE", over.get("birth", "23.08.1991")), \
+             patch.object(config, "APPLICANT_PHONE", over.get("phone", "+994 50 123 4567")), \
+             patch.object(config, "APPLICANT_PURPOSE", over.get("purpose", "family reunion")), \
+             patch.object(config, "APPLICANT_EXTRA_FIELDS", {}):
+            hints = dict(config.APPLICANT_FIELD_HINTS)
+            hints.update({
+                "pasport": "C01548134", "reisepass": "C01548134",
+                "geburtsdatum": over.get("birth", "23.08.1991"),
+                "date of birth": over.get("birth", "23.08.1991"),
+                "telefon": over.get("phone", "+994 50 123 4567"),
+                "telephone": over.get("phone", "+994 50 123 4567"),
+            })
+            with patch.object(config, "APPLICANT_FIELD_HINTS", hints):
+                h = AppointmentHandler(root_folder=str(baku))
+                return h._fill_applicant_fields(form)
+
+    def test_passport_found_by_label_not_name(self, baku):
+        assert self._fill(baku)["fields[0].content"] == "C01548134"
+
+    def test_birthdate_found_by_label(self, baku):
+        assert self._fill(baku)["fields1content"] == "23.08.1991"
+
+    def test_phone_found_by_label(self, baku):
+        assert self._fill(baku)["fields[3].content"] == "+994 50 123 4567"
+
+    def test_hidden_companions_are_never_overwritten(self, baku):
+        """definitionId/index share the visible field's label and must survive."""
+        f = self._fill(baku)
+        assert f["fields[0].definitionId"] == "672"
+        assert f["fields[0].index"] == "0"
+        assert f["fields[3].definitionId"] == "718"
+        assert f["fields[3].index"] == "3"
+
+    def test_purpose_dropdown_selects_family_reunion(self, baku):
+        chosen = self._fill(baku)["fields[2].content"]
+        assert "family reunion" in chosen
+        assert chosen.startswith("Ail")
+
+    def test_unmatched_purpose_leaves_dropdown_empty(self, baku):
+        assert self._fill(baku, purpose="studying astrophysics")["fields[2].content"] == ""
+
+    def test_email_repeat_is_filled_too(self, baku):
+        f = self._fill(baku)
+        assert f["email"] == f["emailrepeat"] == "r@example.com"
+
+    def test_submit_action_discovered_from_live_markup(self, baku):
+        form = extractors.extract_form_context(str(baku), "bookfinalappt.html")
+        assert extractors.pick_submit_action(form["submits"]) == (
+            "action:appointment_addAppointment", "Speichern",
+        )
+
+
 class TestCaptchaFormAutodetect:
     def test_extracts_image_without_form_id(self, target, tmp_path):
         html = utils.load_html_file(str(target / "target" / "bookfinalappt.html"))

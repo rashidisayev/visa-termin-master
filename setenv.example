@@ -155,9 +155,23 @@ export APPLICANT_EMAIL=""
 # at the door, and blocked from future bookings after a no-show.
 export APPLICANT_PASSPORT=""
 
-# Some categories ask for extra fields. If a dry run warns that fields were
-# left empty, supply them here as name=value pairs:
-# export APPLICANT_EXTRA_FIELDS="birthDate=01.01.1990,phone=+4915112345678"
+# Many embassies also ask for these on the booking form.
+export APPLICANT_BIRTHDATE=""        # DD.MM.YYYY
+export APPLICANT_PHONE=""
+
+# Purpose of the journey, where the form offers a dropdown. THIS is how a
+# family-reunion D visa is chosen - it is an option on the form, not a separate
+# category. A fragment is enough; it is matched against the option text.
+# Baku's national visa offers, for example:
+#   "Ailə birləşməsi / Familienzusammenführung / family reunion"
+#   "Au pair"
+#   "Könullülük Xidməti / Freiwilligendienst / Voluntary Service"
+#   "və s. / sonstiges / other"
+# export APPLICANT_PURPOSE="family reunion"
+
+# Escape hatch: if a dry run warns that fields were left empty, set them here
+# by their exact form field name.
+# export APPLICANT_EXTRA_FIELDS="fields[0].content=C01548134"
 
 # Book automatically as soon as an acceptable date is found (true/false)
 export AUTO_BOOK="false"

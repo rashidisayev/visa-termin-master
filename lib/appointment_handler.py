@@ -332,7 +332,7 @@ class AppointmentHandler:
                 self.logger.error(f"No submit button on the booking form: {form['submits']}")
                 return False
 
-            fields = self._fill_applicant_fields(form["fields"])
+            fields = self._fill_applicant_fields(form)
             fields["captchaText"] = solution
             fields[submit[0]] = submit[1] or "Submit"
 
@@ -358,47 +358,95 @@ class AppointmentHandler:
         self.logger.error("Could not book: captcha rejected on every attempt")
         return False
 
-    def _fill_applicant_fields(self, form_fields: Dict[str, str]) -> Dict[str, str]:
+    def _fill_applicant_fields(self, form: Dict[str, Any]) -> Dict[str, str]:
         """
         Fill the applicant's details into whatever the live form happens to ask for.
 
-        Field names vary by embassy and visa category, so match loosely on the
-        name rather than assuming a fixed set. Any field left empty is logged:
-        that is how an unexpected required field (a passport number, a date of
-        birth) shows up in a dry run instead of failing a real booking.
+        Matches on the field name AND its visible label, because embassies add
+        their own fields with meaningless names - Baku asks for the passport
+        number as "fields[0].content" - so only the label identifies them.
+        Dropdowns are matched against their option text.
+
+        Any field left empty is logged, so an unexpected requirement shows up
+        in a dry run instead of failing a real booking.
 
         Args:
-            form_fields: Fields as read from the live form
+            form: Form context from extractors.extract_form_context()
 
         Returns:
             A new dict with the applicant's values filled in
         """
-        fields = dict(form_fields)
+        fields = dict(form["fields"])
+        labels = form.get("labels", {})
+        options = form.get("options", {})
 
         for name in list(fields):
-            lowered = name.lower()
-
+            # An explicit override always wins.
             if name in config.APPLICANT_EXTRA_FIELDS:
                 fields[name] = config.APPLICANT_EXTRA_FIELDS[name]
                 continue
 
+            # Never touch a field the form already filled in. Custom fields come
+            # with hidden companions ("fields[0].definitionId", "fields[0].index")
+            # that carry the values the portal needs and share the visible
+            # field's label, so matching alone would clobber them.
+            if fields[name]:
+                continue
+
+            # Dropdown: pick the option whose text contains the configured purpose.
+            if name in options:
+                fields[name] = self._choose_option(options[name], labels.get(name, ""))
+                continue
+
+            haystack = f"{name} {labels.get(name, '')}".lower()
             for hint, value in config.APPLICANT_FIELD_HINTS.items():
-                if hint in lowered and value:
+                if hint in haystack and value:
                     fields[name] = value
                     break
 
-        # Anything the portal asked for that we could not fill.
         unfilled = [
             name for name, value in fields.items()
             if not value and name not in ("captchaText", "token", "rebooking")
         ]
         if unfilled:
+            described = ", ".join(
+                f"{n} ({labels[n][:40]})" if labels.get(n) else n for n in unfilled
+            )
             self.logger.warning(
-                f"Form fields left empty: {', '.join(unfilled)} - "
-                f"if the booking is rejected, set them via APPLICANT_EXTRA_FIELDS"
+                f"Form fields left empty: {described} - "
+                f"set them via APPLICANT_EXTRA_FIELDS or the applicant settings"
             )
 
         return fields
+
+    def _choose_option(self, choices: list, label: str) -> str:
+        """
+        Pick a dropdown value matching APPLICANT_PURPOSE.
+
+        This is how a family-reunion D visa is selected at posts like Baku:
+        the purpose is an option on the booking form, not a separate category.
+
+        Args:
+            choices: List of (value, text) pairs from the form
+            label: The dropdown's label, for logging
+
+        Returns:
+            The chosen option value, or "" if nothing matched
+        """
+        wanted = config.APPLICANT_PURPOSE.strip().lower()
+        if not wanted:
+            return ""
+
+        for value, text in choices:
+            if value and wanted in text.lower():
+                self.logger.info(f"Selected '{text}' for '{label[:40]}'")
+                return value
+
+        available = "; ".join(t for _, t in choices if t)
+        self.logger.warning(
+            f"APPLICANT_PURPOSE '{config.APPLICANT_PURPOSE}' matched nothing. Options: {available}"
+        )
+        return ""
 
     def _applicant_is_configured(self) -> bool:
         """Check that the details the portal writes into the booking are present."""

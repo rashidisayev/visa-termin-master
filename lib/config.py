@@ -120,10 +120,22 @@ APPLICANT_EXTRA_FIELDS = {
     if key.strip() and value.strip()
 }
 
-# Field names are matched loosely because they differ between categories and
-# embassies: any form field whose name contains one of these substrings gets
-# the corresponding value.
+# Further details some embassies ask for. Baku's national visa form wants all
+# of these, as fields named "fields[0].content", "fields1content" and so on.
+APPLICANT_BIRTHDATE = os.environ.get("APPLICANT_BIRTHDATE", "")
+APPLICANT_PHONE = os.environ.get("APPLICANT_PHONE", "")
+
+# Purpose of journey, where the form offers a dropdown (this is how a "family
+# reunion" D visa is selected - it is an option, not a separate category).
+# Matched case-insensitively against the option text, so a fragment is enough.
+APPLICANT_PURPOSE = os.environ.get("APPLICANT_PURPOSE", "")
+
+# Fields are matched against BOTH the field name and its visible label, because
+# embassies define custom fields with meaningless names ("fields[0].content")
+# whose meaning appears only in the label. Keys are substrings; the first match
+# wins, so put more specific terms first.
 APPLICANT_FIELD_HINTS = {
+    # name-based
     "lastname": APPLICANT_LASTNAME,
     "surname": APPLICANT_LASTNAME,
     "firstname": APPLICANT_FIRSTNAME,
@@ -131,6 +143,17 @@ APPLICANT_FIELD_HINTS = {
     "email": APPLICANT_EMAIL,
     "passport": APPLICANT_PASSPORT,
     "passno": APPLICANT_PASSPORT,
+    # label-based, in the languages the portal actually uses
+    "reisepass": APPLICANT_PASSPORT,
+    "pasport": APPLICANT_PASSPORT,
+    "geburtsdatum": APPLICANT_BIRTHDATE,
+    "date of birth": APPLICANT_BIRTHDATE,
+    "doğum": APPLICANT_BIRTHDATE,
+    "telefon": APPLICANT_PHONE,
+    "telephone": APPLICANT_PHONE,
+    "nachname": APPLICANT_LASTNAME,
+    "vorname": APPLICANT_FIRSTNAME,
+    "e-mail": APPLICANT_EMAIL,
 }
 
 # Book automatically when an acceptable date is found

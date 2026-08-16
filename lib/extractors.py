@@ -45,6 +45,26 @@ def extract_captcha_image(
     return success
 
 
+def _field_label(element) -> str:
+    """
+    Read the human label sitting in front of a form field.
+
+    Embassies add their own fields with meaningless names - Baku asks for the
+    passport number as "fields[0].content" - so the label is the only thing
+    that identifies what a field is actually for.
+
+    Args:
+        element: The input/select/textarea element
+
+    Returns:
+        Normalised label text, lowercased, or "" if none was found
+    """
+    text = element.find_previous(
+        string=lambda s: s and s.strip() and len(s.strip()) > 3
+    )
+    return " ".join(text.strip().split()).lower() if text else ""
+
+
 def _absolute(href: str) -> str:
     """
     Resolve a portal href against the application root.
@@ -172,6 +192,8 @@ def extract_form_context(
     # and record the submit buttons so the caller can pick the dispatch one.
     fields = {}
     submits = []
+    labels = {}
+    options = {}
     for element in form.find_all(["input", "select", "textarea"]):
         name = element.get("name")
         if not name:
@@ -179,7 +201,19 @@ def extract_form_context(
         if element.get("type") == "submit" or name.startswith("action:"):
             submits.append((name, element.get("value") or ""))
             continue
+
         fields[name] = element.get("value") or ""
+        labels[name] = _field_label(element)
+
+        # Embassies define their own fields with generic names like
+        # "fields[0].content", so the label is the only thing that says what a
+        # field means. Dropdown values are recorded for the same reason.
+        if element.name == "select":
+            fields[name] = ""
+            options[name] = [
+                (opt.get("value") or "", opt.get_text(strip=True))
+                for opt in element.find_all("option")
+            ]
 
     if "jsessionid" not in action_url:
         logger.warning("Form action carries no jsessionid - session may not persist")
@@ -188,7 +222,13 @@ def extract_form_context(
         f"Form '{form.get('id') or '?'}' posts to {action_url.split('?')[0]} "
         f"with {len(fields)} fields and {len(submits)} submit button(s)"
     )
-    return {"action": action_url, "fields": fields, "submits": submits}
+    return {
+        "action": action_url,
+        "fields": fields,
+        "submits": submits,
+        "labels": labels,
+        "options": options,
+    }
 
 
 def captcha_was_rejected(

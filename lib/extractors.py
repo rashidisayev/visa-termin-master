@@ -1,10 +1,11 @@
 """
 HTML extraction module for visa appointment helper.
 Provides functions to extract specific information from visa portal HTML pages.
+Supports both legacy and new German embassy portal layouts.
 """
 import os
 from typing import Optional
-from . import config, utils
+from . import config, utils, booking_process
 
 
 def extract_captcha_image(
@@ -141,6 +142,7 @@ def extract_available_date(
 ) -> Optional[str]:
     """
     Extract available appointment date from response page.
+    Auto-detects portal type and uses appropriate extraction logic.
     Uses the filtering logic from config to determine if date is acceptable.
     
     Args:
@@ -162,43 +164,23 @@ def extract_available_date(
         return None
     
     try:
-        content_div = utils.find_element(html_content, "div", {"id": config.CONTENT_DIV_ID})
-        if not content_div:
-            logger.error("Content div not found in HTML")
+        # Detect portal type
+        detector = booking_process.BookingProcessDetector()
+        portal_type = detector.detect_portal_type(html_content)
+        logger.info(f"Portal type: {portal_type} - {detector.get_portal_description()}")
+        
+        # Get layout-specific adapter
+        adapter = booking_process.PortalLayoutAdapter(portal_type)
+        
+        # Extract dates using appropriate method
+        available_date = adapter.extract_available_dates(html_content, config)
+        
+        if available_date:
+            logger.info(f"Found acceptable date: {available_date}")
+            return available_date
+        else:
+            logger.info("No acceptable date found in available appointments")
             return None
-        
-        h4_elements = utils.find_all_elements(content_div, "h4", {})
-        
-        if not h4_elements:
-            logger.warning("No date elements found in response")
-            return None
-        
-        for elem in h4_elements:
-            text = elem.text.strip()
-            tokens = text.split(" ")
-            
-            if len(tokens) < 2:
-                continue
-            
-            date_tokens = tokens[1].split(".")
-            
-            if len(date_tokens) != 3:
-                continue
-            
-            try:
-                day = int(date_tokens[0])
-                month = int(date_tokens[1])
-                
-                if config.is_acceptable_date(month, day):
-                    available_date = '.'.join(date_tokens)
-                    logger.info(f"Found acceptable date: {available_date}")
-                    return available_date
-                    
-            except ValueError:
-                continue
-        
-        logger.info("No acceptable date found in available appointments")
-        return None
         
     except Exception as e:
         logger.error(f"Error extracting available date: {e}")

@@ -1,6 +1,7 @@
 """
 Configuration module for visa appointment helper.
 Centralized settings for URLs, selectors, logging, and notification channels.
+Supports multiple visa types with automatic detection and configuration.
 """
 import os
 from pathlib import Path
@@ -15,17 +16,39 @@ LOG_FILE = os.path.join(LOG_FOLDER, "log.txt")
 Path(TARGET_FOLDER).mkdir(parents=True, exist_ok=True)
 Path(LOG_FOLDER).mkdir(parents=True, exist_ok=True)
 
-# Consul URL Configuration
+# ============================================================================
+# UNIVERSAL CONFIGURATION - One setting for all visa types
+# ============================================================================
+
+# Embassy Location (e.g., 'kiew', 'berlin', 'moscow')
+EMBASSY_LOCATION = os.environ.get("EMBASSY_LOCATION", "kiew")
+
+# Visa Type to monitor (options: 'schengen', 'work', 'study', 'family', 'residence')
+# Set to 'auto' to monitor all available types
+VISA_TYPE = os.environ.get("VISA_TYPE", "schengen")
+
+# Base consulate URL (typically same for all visa types at an embassy)
 CONSULATE_BASE_URL = os.environ.get("CONSULATE_BASE_URL", "https://vis.diplo.de/rktermin/frontend/")
+
+# ============================================================================
+# LEGACY CONFIGURATION - Override if needed for specific embassy
+# These are auto-set based on VISA_TYPE, but can be overridden
+# ============================================================================
+
+# Consul URL Configuration
 RESCHEDULING_BASE_URL = os.environ.get("RESCHEDULING_BASE_URL", "")
 BOOKING_BASE_URL = os.environ.get("BOOKING_BASE_URL", "")
 HOST = os.environ.get("HOST", "https://vis.diplo.de")
 
-# Consulate Details
+# Consulate Details - Auto-set based on VISA_TYPE or override here
 CONSULATE_DETAILS = os.environ.get("CONSULATE_DETAILS", "")
-LOCATION_CODE = os.environ.get("LOCATION_CODE", "kiew")
+LOCATION_CODE = os.environ.get("LOCATION_CODE", EMBASSY_LOCATION)
 REALM_ID = os.environ.get("REALM_ID", "561")
+
+# Category ID - varies by visa type and embassy
+# For Kyiv: Schengen=1497, Work=1785, Study=1786, Family=1787, Residence=1788
 CATEGORY_ID = os.environ.get("CATEGORY_ID", "1497")
+
 RESCHEDULING_TOKEN = os.environ.get("RESCHEDULING_TOKEN", "")
 
 # HTML Selectors

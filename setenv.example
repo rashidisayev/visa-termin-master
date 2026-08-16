@@ -1,38 +1,69 @@
 #!/bin/bash
 
 ################################################################################
-# Example Configuration File for Visa Appointment Helper
-# Copy this to ./setenv and update with your values
+# Visa Appointment Helper - Configuration File (setenv.example)
+# Copy this to ./setenv and customize for your needs
+# 
+# UNIVERSAL MODE: This configuration works for all visa types
+# Simply change VISA_TYPE to switch between different visa categories
 ################################################################################
 
 # Root folder (usually the project directory)
 export ROOT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ################################################################################
-# Consulate Portal URLs and Details
+# UNIVERSAL CONFIGURATION - One setting for all visa types
 ################################################################################
 
-# Main consulate URL
+# Embassy Location (e.g., 'kiew', 'berlin', 'moscow', 'istanbul', 'warsaw')
+# The system will automatically use the correct category IDs for your location
+export EMBASSY_LOCATION="kiew"
+
+# Visa Type to monitor - CHANGE THIS TO SWITCH VISA TYPES
+# Available options:
+#   - schengen    : Schengen short-stay visa (up to 90 days, C visa)
+#   - work        : Employment visa (D visa)
+#   - study       : Study visa (D visa)
+#   - family      : Family reunion visa (D visa)
+#   - residence   : General residence permit (D visa)
+#   - auto        : Monitor all visa types (advanced)
+export VISA_TYPE="schengen"
+
+# Base consulate URL (typically same for all visa types at an embassy)
 export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
 
-# Rescheduling/appointment booking URLs
-export RESCHEDULING_BASE_URL="https://vis.diplo.de/rktermin/frontend/account/"
-export BOOKING_BASE_URL="https://vis.diplo.de/rktermin/frontend/account/"
+################################################################################
+# Date Filtering Configuration
+# Customize to match your visa appointment needs
+################################################################################
 
-# Base host for URL construction
-export HOST="https://vis.diplo.de"
+# For Schengen visas: acceptable appointment dates
+# Examples: March after 24th or April before 24th
+# Edit lib/config.py function is_acceptable_date() for complex logic
 
-# Consulate-specific parameters (URL query string)
-# Example: locationCode=kiew&realmId=561&categoryId=1497
-export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
+# For D visas: usually more flexible
+# Set dates according to your study start date, work contract, etc.
 
-# Individual consulate parameters
-export LOCATION_CODE="kiew"
-export REALM_ID="561"
-export CATEGORY_ID="1497"
+# This is configured in lib/config.py - modify the is_acceptable_date() function
+# to match your specific requirements
 
-# Rescheduling token (if required)
-export RESCHEDULING_TOKEN=""
+################################################################################
+# OPTIONAL: Override default category IDs (auto-detected by VISA_TYPE)
+# Only set these if your embassy uses non-standard IDs
+################################################################################
+
+# Consulate Details (auto-set based on VISA_TYPE and EMBASSY_LOCATION)
+# export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
+
+# Location Code (usually same as EMBASSY_LOCATION)
+# export LOCATION_CODE="kiew"
+
+# Realm ID (usually 561 for most embassies, but may vary)
+# export REALM_ID="561"
+
+# Category ID (auto-set based on VISA_TYPE, but you can override)
+# For Kyiv: Schengen=1497, Work=1785, Study=1786, Family=1787, Residence=1788
+# export CATEGORY_ID="1497"
 
 ################################################################################
 # Telegram Notification Settings
@@ -52,26 +83,77 @@ export TELEGRAM_CHAT_ID="your_chat_id_here"
 
 # DeathByCaptcha account username
 # Register at: https://deathbycaptcha.com/
+# They offer a free tier with some credits
 export DBC_USERNAME="your_dbc_username"
 
 # DeathByCaptcha account password
 export DBC_PASSWORD="your_dbc_password"
 
 # Path to DeathByCaptcha binary
-# Usually lib/deathbycaptcha
+# Usually lib/deathbycaptcha in the project directory
 export DBC_BINARY_PATH="lib/deathbycaptcha"
 
 ################################################################################
-# Optional: Auto-booking Settings
+# Optional: Auto-Booking Settings
 ################################################################################
 
 # Enable automatic booking of appointments (true/false)
-# WARNING: Only enable after testing the workflow!
+# WARNING: Only enable after testing the workflow thoroughly!
+# For D visas, carefully test with your specific requirements
 export AUTO_BOOK="false"
 
 ################################################################################
-# Optional: Custom Date Filtering
+# Optional: Advanced Settings
 ################################################################################
 
-# You can edit lib/config.py to customize is_acceptable_date() function
-# to match your visa appointment availability requirements
+# Portal Auto-Detection (automatic, no need to change)
+# The system automatically detects legacy and new German embassy portals
+# and adapts the booking process accordingly
+
+# Logging Level (optional)
+# export LOG_LEVEL="DEBUG"  # For verbose logging
+# export LOG_LEVEL="INFO"   # Default
+
+# Check frequency when used with cron (optional)
+# Default: checks on demand when run
+# Cron example: */30 8-17 * * 1-5 = every 30 mins during business hours
+
+################################################################################
+# QUICK START EXAMPLES
+################################################################################
+
+# Example 1: Monitor Schengen appointments at Kyiv embassy
+# VISA_TYPE="schengen"
+# EMBASSY_LOCATION="kiew"
+
+# Example 2: Monitor D visa (work) appointments at Kyiv embassy
+# VISA_TYPE="work"
+# EMBASSY_LOCATION="kiew"
+
+# Example 3: Monitor study visa at Berlin embassy
+# VISA_TYPE="study"
+# EMBASSY_LOCATION="berlin"
+
+################################################################################
+# SUPPORTED EMBASSY LOCATIONS
+################################################################################
+
+# This tool supports all German embassies, including:
+# - kiew (Kyiv, Ukraine) - Default
+# - berlin (Berlin, Germany)
+# - moscow (Moscow, Russia)
+# - istanbul (Istanbul, Turkey)
+# - warsaw (Warsaw, Poland)
+# - and many more...
+#
+# For other locations, you may need to manually override CONSULATE_DETAILS,
+# LOCATION_CODE, CATEGORY_ID, etc.
+
+################################################################################
+# DOCUMENTATION
+################################################################################
+
+# Full documentation in:
+# - README.md         : Quick start guide
+# - REFACTORING.md    : Architecture and new features
+# - DEVELOPER.md      : Developer guide for customization

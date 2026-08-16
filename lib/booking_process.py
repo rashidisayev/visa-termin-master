@@ -3,9 +3,12 @@ Booking process adapter for German visa appointments.
 Auto-detects and adapts to different embassy portal layouts and booking processes.
 Supports both legacy and new German embassy appointment systems.
 """
-from typing import Optional, Dict, List, Any
-from bs4 import BeautifulSoup
+from typing import Optional, Dict, List, Any, TYPE_CHECKING
+
 from . import utils, config
+
+if TYPE_CHECKING:
+    from bs4 import BeautifulSoup
 
 
 class BookingProcessDetector:
@@ -36,12 +39,12 @@ class BookingProcessDetector:
         self.detected_portal = None
         self.portal_metadata = {}
     
-    def detect_portal_type(self, html_content: BeautifulSoup) -> str:
+    def detect_portal_type(self, html_content: Any) -> str:
         """
         Detect the type of booking portal from HTML content.
         
         Args:
-            html_content: BeautifulSoup HTML object
+            html_content: Any HTML object
             
         Returns:
             Portal type identifier or 'unknown'
@@ -64,12 +67,12 @@ class BookingProcessDetector:
         
         return self.PORTAL_SIGNATURES.get(self.detected_portal, {}).get("description")
     
-    def extract_form_fields(self, html_content: BeautifulSoup) -> Dict[str, List[str]]:
+    def extract_form_fields(self, html_content: Any) -> Dict[str, List[str]]:
         """
         Extract all form fields from the HTML to understand required information.
         
         Args:
-            html_content: BeautifulSoup HTML object
+            html_content: Any HTML object
             
         Returns:
             Dictionary of form fields found: {field_type: [field_names]}
@@ -124,13 +127,13 @@ class BookingProcessDetector:
             self.logger.error(f"Error extracting form fields: {e}")
             return fields
     
-    def detect_appointment_slots(self, html_content: BeautifulSoup) -> List[str]:
+    def detect_appointment_slots(self, html_content: Any) -> List[str]:
         """
         Detect available appointment slots/dates from page.
         Adapts to different portal layouts.
         
         Args:
-            html_content: BeautifulSoup HTML object
+            html_content: Any HTML object
             
         Returns:
             List of detected appointment dates/slots
@@ -171,12 +174,12 @@ class BookingProcessDetector:
             self.logger.error(f"Error detecting appointment slots: {e}")
             return []
     
-    def detect_captcha_type(self, html_content: BeautifulSoup) -> Optional[str]:
+    def detect_captcha_type(self, html_content: Any) -> Optional[str]:
         """
         Detect what type of captcha is used on the page.
         
         Args:
-            html_content: BeautifulSoup HTML object
+            html_content: Any HTML object
             
         Returns:
             Captcha type identifier or None
@@ -206,14 +209,14 @@ class PortalLayoutAdapter:
     
     def extract_available_dates(
         self, 
-        html_content: BeautifulSoup, 
+        html_content: Any, 
         config_obj: Any
     ) -> Optional[str]:
         """
         Extract available dates using portal-specific logic.
         
         Args:
-            html_content: BeautifulSoup HTML object
+            html_content: Any HTML object
             config_obj: Configuration object with date filtering
             
         Returns:
@@ -230,7 +233,7 @@ class PortalLayoutAdapter:
     
     def _extract_legacy_rktermin_dates(
         self, 
-        html_content: BeautifulSoup, 
+        html_content: Any, 
         config_obj: Any
     ) -> Optional[str]:
         """Extract dates from legacy RKTerMin system"""
@@ -274,7 +277,7 @@ class PortalLayoutAdapter:
     
     def _extract_new_termin_dates(
         self, 
-        html_content: BeautifulSoup, 
+        html_content: Any, 
         config_obj: Any
     ) -> Optional[str]:
         """Extract dates from new digital portal system"""
@@ -320,7 +323,7 @@ class PortalLayoutAdapter:
     
     def _extract_doctolib_dates(
         self, 
-        html_content: BeautifulSoup, 
+        html_content: Any, 
         config_obj: Any
     ) -> Optional[str]:
         """Extract dates from Doctolib-based system"""
@@ -359,7 +362,7 @@ class PortalLayoutAdapter:
     
     def _extract_generic_dates(
         self, 
-        html_content: BeautifulSoup, 
+        html_content: Any, 
         config_obj: Any
     ) -> Optional[str]:
         """Generic date extraction for unknown portal types"""

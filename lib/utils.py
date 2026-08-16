@@ -7,9 +7,15 @@ import logging
 import re
 import base64
 from pathlib import Path
-from typing import Optional, Dict, Any
-from bs4 import BeautifulSoup
+from typing import Optional, Dict, Any, TYPE_CHECKING
+
 from . import config
+
+if TYPE_CHECKING:
+    from bs4 import BeautifulSoup
+
+# Note: BeautifulSoup is imported lazily in functions that need it
+# to avoid hard dependency at module import time
 
 
 def setup_logger(log_file: Optional[str] = None) -> logging.Logger:
@@ -51,7 +57,7 @@ def setup_logger(log_file: Optional[str] = None) -> logging.Logger:
     return logger
 
 
-def load_html_file(filepath: str) -> Optional[BeautifulSoup]:
+def load_html_file(filepath: str) -> Optional[Any]:
     """
     Load and parse an HTML file.
     
@@ -65,6 +71,7 @@ def load_html_file(filepath: str) -> Optional[BeautifulSoup]:
         return None
     
     try:
+        from bs4 import BeautifulSoup
         with open(filepath, 'r', encoding='utf-8') as f:
             return BeautifulSoup(f.read(), 'html.parser')
     except Exception as e:
@@ -100,7 +107,7 @@ def save_file(filepath: str, content: bytes, mode: str = 'wb') -> bool:
         return False
 
 
-def extract_base64_image(html_content: BeautifulSoup, form_id: str, output_file: str) -> bool:
+def extract_base64_image(html_content: Any, form_id: str, output_file: str) -> bool:
     """
     Extract base64 encoded image from HTML and save as JPG.
     
@@ -145,7 +152,7 @@ def extract_base64_image(html_content: BeautifulSoup, form_id: str, output_file:
         return False
 
 
-def find_element(html_content: BeautifulSoup, tag: str, attrs: Dict[str, str]) -> Optional[Any]:
+def find_element(html_content: Any, tag: str, attrs: Dict[str, str]) -> Optional[Any]:
     """
     Find an HTML element by tag and attributes.
     
@@ -160,7 +167,7 @@ def find_element(html_content: BeautifulSoup, tag: str, attrs: Dict[str, str]) -
     return html_content.find(tag, attrs)
 
 
-def find_all_elements(html_content: BeautifulSoup, tag: str, attrs: Dict[str, str]) -> list:
+def find_all_elements(html_content: Any, tag: str, attrs: Dict[str, str]) -> list:
     """
     Find all HTML elements matching tag and attributes.
     

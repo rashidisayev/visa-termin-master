@@ -9,7 +9,7 @@
 ## ✨ Features
 
 - ✅ Automatically checks for available visa appointments
-- ✅ Solves captchas using DeathByCaptcha service
+- ✅ Solves captchas via the 2Captcha API
 - ✅ Sends notifications via Telegram when dates become available
 - ✅ Can automatically book appointments (optional)
 - ✅ Comprehensive logging and error handling
@@ -21,7 +21,8 @@
 
 - Python 3.6 or higher
 - `beautifulsoup4` for HTML parsing
-- DeathByCaptcha account (free tier available)
+- `requests` for the 2Captcha API
+- 2Captcha account and API key (pay-as-you-go, ~$0.5-1 per 1000 captchas)
 - Telegram bot token and chat ID
 - German consulate visa portal access
 
@@ -45,7 +46,7 @@ chmod +x setup_refactored.sh
 cp setenv.example setenv
 
 # Edit setenv with your values
-# Required: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DBC_USERNAME, DBC_PASSWORD
+# Required: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, CAPTCHA_API_KEY
 nano setenv
 ```
 
@@ -72,8 +73,7 @@ export ROOT_FOLDER="$(pwd)"
 export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
-export DBC_USERNAME="your_dbc_username"
-export DBC_PASSWORD="your_dbc_password"
+export CAPTCHA_API_KEY="your_2captcha_api_key"
 export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
 ```
 
@@ -139,7 +139,7 @@ handler.run_full_workflow(auto_book=True)
 ## ⚙️ How It Works
 
 1. **Fetch** - Downloads captcha page from consulate portal
-2. **Solve** - Extracts and solves captcha using DeathByCaptcha
+2. **Solve** - Extracts the captcha image and solves it through the 2Captcha API
 3. **Check** - Fetches available dates and checks against preferences
 4. **Notify** - Sends Telegram notification if date is acceptable
 5. **Book** (optional) - Automatically books the appointment
@@ -186,7 +186,7 @@ python3 lib/extract_captcha.py "$(pwd)" captchapage.html appointment_captcha_mon
 - ⚠️ **Test without auto-booking first** - Set `AUTO_BOOK=false` initially
 - ⚠️ **Never commit `.setenv`** - Add to `.gitignore` if in git repo
 - ⚠️ **Respect rate limits** - Don't check too frequently
-- ⚠️ **Verify credentials** - Test Telegram and DeathByCaptcha accounts
+- ⚠️ **Verify credentials** - Test the Telegram bot and check your 2Captcha balance
 
 ## 📝 License
 
@@ -197,7 +197,7 @@ See [LICENSE](LICENSE) file
 ## 📖 Additional Resources
 
 - [German Visa Portal](https://vis.diplo.de/)
-- [DeathByCaptcha](https://deathbycaptcha.com/)
+- [2Captcha API docs](https://2captcha.com/2captcha-api)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 
 ---

@@ -62,10 +62,44 @@ TELEGRAM_API_URL = os.environ.get("TELEGRAM_API_URL", "https://api.telegram.org/
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-# Captcha Solver Settings (DeathByCaptcha)
-DBC_USERNAME = os.environ.get("DBC_USERNAME", "")
-DBC_PASSWORD = os.environ.get("DBC_PASSWORD", "")
-DBC_BINARY_PATH = os.environ.get("DBC_BINARY_PATH", "lib/deathbycaptcha")
+# Captcha Solver Settings (2Captcha)
+# Get an API key at https://2captcha.com/enterpage
+CAPTCHA_PROVIDER = os.environ.get("CAPTCHA_PROVIDER", "2captcha")
+CAPTCHA_API_KEY = os.environ.get("CAPTCHA_API_KEY") or os.environ.get("TWOCAPTCHA_API_KEY", "")
+
+# API endpoints (only change these if you use a 2Captcha-compatible service)
+CAPTCHA_API_URL = os.environ.get("CAPTCHA_API_URL", "https://2captcha.com/in.php")
+CAPTCHA_RESULT_URL = os.environ.get("CAPTCHA_RESULT_URL", "https://2captcha.com/res.php")
+
+# Total seconds to wait for a solution before giving up
+CAPTCHA_TIMEOUT = int(os.environ.get("CAPTCHA_TIMEOUT", "120"))
+# Seconds between result polls, and per-HTTP-request timeout
+CAPTCHA_POLL_INTERVAL = int(os.environ.get("CAPTCHA_POLL_INTERVAL", "5"))
+CAPTCHA_HTTP_TIMEOUT = int(os.environ.get("CAPTCHA_HTTP_TIMEOUT", "30"))
+
+# Captcha hints passed to the workers - the consulate captcha is a short
+# alphanumeric string, so the defaults leave the length unconstrained.
+# Case-sensitive solving is requested because it is never worse: a correctly
+# cased answer is accepted whether or not the portal compares case.
+CAPTCHA_CASE_SENSITIVE = os.environ.get("CAPTCHA_CASE_SENSITIVE", "true").lower() in ("true", "1", "yes")
+CAPTCHA_NUMERIC = int(os.environ.get("CAPTCHA_NUMERIC", "0"))  # 0=any, 1=digits only, 2=letters only
+CAPTCHA_MIN_LENGTH = int(os.environ.get("CAPTCHA_MIN_LENGTH", "0"))
+CAPTCHA_MAX_LENGTH = int(os.environ.get("CAPTCHA_MAX_LENGTH", "0"))
+
+# Report unusable solutions back to 2Captcha so they are refunded
+CAPTCHA_REPORT_BAD = os.environ.get("CAPTCHA_REPORT_BAD", "true").lower() in ("true", "1", "yes")
+
+# Pipe-separated phrases that mean the portal rejected the captcha solution.
+# Extend this if your embassy's portal words the error differently.
+CAPTCHA_ERROR_MARKERS = [
+    marker.strip().lower()
+    for marker in os.environ.get(
+        "CAPTCHA_ERROR_MARKERS",
+        "nicht korrekt eingegeben|zeichenfolge wurde nicht|sicherheitscode|"
+        "entered text was not correct|code is not correct|captcha is not correct",
+    ).split("|")
+    if marker.strip()
+]
 
 # Date Filtering Logic - customize this for your needs
 def is_acceptable_date(month: int, day: int) -> bool:

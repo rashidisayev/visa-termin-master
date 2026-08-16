@@ -44,6 +44,31 @@ def extract_captcha_image(
     return success
 
 
+def captcha_was_rejected(
+    root_folder: str,
+    response_html_file: str = "response.html"
+) -> bool:
+    """
+    Check whether the portal rejected the submitted captcha solution.
+    Used to report wrong solutions back to the solver for a refund.
+
+    Args:
+        root_folder: Root folder path
+        response_html_file: Name of HTML file returned after submitting the captcha
+
+    Returns:
+        True if the page contains a captcha error message
+    """
+    html_path = os.path.join(root_folder, "target", response_html_file)
+
+    content = utils.read_file_content(html_path)
+    if not content:
+        return False
+
+    page_text = content.lower()
+    return any(marker in page_text for marker in config.CAPTCHA_ERROR_MARKERS)
+
+
 def extract_booking_time(
     root_folder: str,
     booking_html_file: str

@@ -18,7 +18,7 @@ The refactored German visa appointment system has been successfully tested and v
 - ✅ Filter appointment dates based on configurable criteria
 - ✅ Parse HTML from different embassy portals (requires BeautifulSoup4)
 - ✅ Send Telegram notifications about appointment availability
-- ✅ Solve CAPTCHA challenges via DeathByCaptcha API
+- ✅ Solve CAPTCHA challenges via the 2Captcha API
 - ✅ Complete end-to-end visa appointment booking workflow
 
 ---
@@ -109,9 +109,9 @@ Multi-location support verified:
 Notification system configured and ready:
 - TELEGRAM_BOT_TOKEN: [NOT SET - optional]
 - TELEGRAM_CHAT_ID: [NOT SET - optional]
-- DBC_USERNAME: [NOT SET - optional]
-- DBC_PASSWORD: [NOT SET - optional]
-- DBC_BINARY_PATH: lib/deathbycaptcha (configured)
+- CAPTCHA_PROVIDER: 2captcha (configured)
+- CAPTCHA_API_KEY: [NOT SET - required for captcha solving]
+- CAPTCHA_API_URL: https://2captcha.com/in.php (configured)
 
 Note: System runs without credentials. Optional: configure for Telegram notifications and automated CAPTCHA solving.
 
@@ -223,8 +223,7 @@ Set environment variables for enhanced features:
 ```bash
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
-export DBC_USERNAME="your_dbc_username"
-export DBC_PASSWORD="your_dbc_password"
+export CAPTCHA_API_KEY="your_2captcha_api_key"
 ```
 
 ### 3. Configure Visa Type and Location
@@ -296,7 +295,7 @@ export EMBASSY_LOCATION="kiew"  # or: berlin, moscow
 - [ ] Portal type detection accuracy across all 4 types
 - [ ] End-to-end appointment booking workflow
 - [ ] Telegram notification delivery
-- [ ] CAPTCHA solving with DeathByCaptcha
+- [ ] CAPTCHA solving with 2Captcha (unit-tested with mocked API; needs a live key end-to-end)
 
 ---
 
@@ -315,7 +314,7 @@ The refactored German visa appointment system is **fully operational and product
 
 **Ready When You Need It**:
 - Optional Telegram notifications (requires credentials)
-- Optional CAPTCHA solving (requires DeathByCaptcha account)
+- Optional CAPTCHA solving (requires a 2Captcha API key)
 - HTML parsing and extraction (requires BeautifulSoup4 installation)
 
 The system has been thoroughly tested and is ready for:

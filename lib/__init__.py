@@ -13,6 +13,7 @@ from . import visa_types
 from . import booking_process
 from . import extractors
 from . import notifications
+from . import captcha_solver
 
 __all__ = [
     "config",
@@ -21,4 +22,5 @@ __all__ = [
     "booking_process",
     "extractors",
     "notifications",
+    "captcha_solver",
 ]

@@ -1,33 +1,27 @@
+#!/usr/bin/env python3
+"""
+CLI wrapper to extract available appointment date from response HTML.
+Uses the refactored extractors module.
+"""
 import sys
 import os
-import re
-from bs4 import BeautifulSoup
 
-root_folder = sys.argv[1]
+# Add parent directory to path to import lib modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-htmlfilepath = os.path.join(root_folder,"target","response.html")
-do_notify = False
+from lib import extractors, utils
 
-available_date = ""
-
-with open(htmlfilepath) as htmlfile:
-    soup = BeautifulSoup(htmlfile.read(), 'html.parser')
-    h4elems = soup.find("div",{"id":"content"}).find_all("h4")
-    for elem in h4elems:
-        tokens = elem.text.strip().split(" ")
-        date_tokens = tokens[1].split(".")
-        #If date is in march, and greater than 24
-        if(int(date_tokens[1]) == 9 and int(date_tokens[0]) > 31):
-            do_notify = True
-            available_date = '.'.join(date_tokens)
-            break;
-
-        #if date is in april and before april 24, notify
-        if(int(date_tokens[1]) == 12 and int(date_tokens[0]) < 31):
-            do_notify = True
-            available_date = '.'.join(date_tokens)
-            break;
-
-    print("NONE" if not do_notify else str(available_date))
-
-exit(0)
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("NONE")
+        sys.exit(0)
+    
+    root_folder = sys.argv[1]
+    
+    # Extract available date
+    available_date = extractors.extract_available_date(root_folder)
+    
+    # Print result
+    print("NONE" if available_date is None else available_date)
+    
+    sys.exit(0)

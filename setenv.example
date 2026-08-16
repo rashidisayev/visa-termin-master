@@ -1,0 +1,77 @@
+#!/bin/bash
+
+################################################################################
+# Example Configuration File for Visa Appointment Helper
+# Copy this to ./setenv and update with your values
+################################################################################
+
+# Root folder (usually the project directory)
+export ROOT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+################################################################################
+# Consulate Portal URLs and Details
+################################################################################
+
+# Main consulate URL
+export CONSULATE_BASE_URL="https://vis.diplo.de/rktermin/frontend/"
+
+# Rescheduling/appointment booking URLs
+export RESCHEDULING_BASE_URL="https://vis.diplo.de/rktermin/frontend/account/"
+export BOOKING_BASE_URL="https://vis.diplo.de/rktermin/frontend/account/"
+
+# Base host for URL construction
+export HOST="https://vis.diplo.de"
+
+# Consulate-specific parameters (URL query string)
+# Example: locationCode=kiew&realmId=561&categoryId=1497
+export CONSULATE_DETAILS="locationCode=kiew&realmId=561&categoryId=1497"
+
+# Individual consulate parameters
+export LOCATION_CODE="kiew"
+export REALM_ID="561"
+export CATEGORY_ID="1497"
+
+# Rescheduling token (if required)
+export RESCHEDULING_TOKEN=""
+
+################################################################################
+# Telegram Notification Settings
+################################################################################
+
+# Your Telegram Bot Token
+# Create a bot with BotFather: https://t.me/botfather
+export TELEGRAM_BOT_TOKEN="your_bot_token_here"
+
+# Chat ID where to send notifications
+# Send a message to your bot and get the chat_id
+export TELEGRAM_CHAT_ID="your_chat_id_here"
+
+################################################################################
+# DeathByCaptcha Credentials
+################################################################################
+
+# DeathByCaptcha account username
+# Register at: https://deathbycaptcha.com/
+export DBC_USERNAME="your_dbc_username"
+
+# DeathByCaptcha account password
+export DBC_PASSWORD="your_dbc_password"
+
+# Path to DeathByCaptcha binary
+# Usually lib/deathbycaptcha
+export DBC_BINARY_PATH="lib/deathbycaptcha"
+
+################################################################################
+# Optional: Auto-booking Settings
+################################################################################
+
+# Enable automatic booking of appointments (true/false)
+# WARNING: Only enable after testing the workflow!
+export AUTO_BOOK="false"
+
+################################################################################
+# Optional: Custom Date Filtering
+################################################################################
+
+# You can edit lib/config.py to customize is_acceptable_date() function
+# to match your visa appointment availability requirements

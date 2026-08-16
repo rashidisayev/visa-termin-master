@@ -1,31 +1,29 @@
+#!/usr/bin/env python3
+"""
+CLI wrapper to extract captcha image from HTML page.
+Uses the refactored extractors module.
+"""
 import sys
 import os
-import re
-from bs4 import BeautifulSoup
-import base64
 
-root_folder = sys.argv[1]
-captcha_file = sys.argv[2]
-captcha_selector_id = sys.argv[3]
+# Add parent directory to path to import lib modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-print(root_folder,captcha_file,captcha_selector_id)
-htmlfilepath = os.path.join(root_folder,"target",captcha_file)
-outputfile = os.path.join(root_folder,"target","captcha.jpg")
-base64img = None
+from lib import extractors, utils
 
-with open(htmlfilepath) as htmlfile:
-
-    soup = BeautifulSoup(htmlfile.read(), 'html.parser')
-    image_style = soup.find("form",{"id":captcha_selector_id}).div.captcha.div['style']
-                
-    m = re.match("background:white url\('data:image/jpg;base64,(.+)'\).*", image_style)
-    if(m):
-        base64img = m.groups(0)[0]
-    else:
-        #log error
-        exit(1)
-
-#save to jpg file
-with open(outputfile,"wb") as op:
-    jpg_recovered = base64.b64decode(base64img.encode('utf-8'))
-    op.write(jpg_recovered)
+if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        print("Usage: extract_captcha.py <root_folder> <html_file> <captcha_selector_id>")
+        sys.exit(1)
+    
+    root_folder = sys.argv[1]
+    captcha_file = sys.argv[2]
+    captcha_selector_id = sys.argv[3]
+    
+    logger = utils.setup_logger()
+    logger.info(f"Extracting captcha from {captcha_file} with selector {captcha_selector_id}")
+    
+    # Extract captcha image
+    success = extractors.extract_captcha_image(root_folder, captcha_file, captcha_selector_id)
+    
+    sys.exit(0 if success else 1)

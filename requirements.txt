@@ -1,1 +1,11 @@
-beautifulsoup4==4.6.0
+# Visa Appointment Helper Requirements
+# Python 3.6+ required for type hints and f-strings
+
+# HTML Parsing
+beautifulsoup4>=4.9.0
+
+# Optional: For better HTTP requests (if extending functionality)
+# requests>=2.25.0
+
+# Optional: For data validation
+# pydantic>=1.8.0

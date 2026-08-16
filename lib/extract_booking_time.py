@@ -1,19 +1,32 @@
+#!/usr/bin/env python3
+"""
+CLI wrapper to extract booking time from appointment page.
+Uses the refactored extractors module.
+"""
 import sys
 import os
-import re
-from bs4 import BeautifulSoup
-import base64
 
-root_folder = sys.argv[1]
-boking_html_filename = sys.argv[2]
+# Add parent directory to path to import lib modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-htmlfilepath = os.path.join(root_folder,"target",boking_html_filename)
+from lib import extractors, utils
 
-with open(htmlfilepath) as htmlfile:
-
-    soup = BeautifulSoup(htmlfile.read(), 'html.parser')
-    datetime_elem = soup.find("div",{"id":"content"}).div.fieldset.find_all("div")[1]
-                
-    print(datetime_elem.text)
-
-exit(0)
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: extract_booking_time.py <root_folder> <html_file>")
+        sys.exit(1)
+    
+    root_folder = sys.argv[1]
+    booking_html_file = sys.argv[2]
+    
+    logger = utils.setup_logger()
+    logger.info(f"Extracting booking time from {booking_html_file}")
+    
+    # Extract booking time
+    booking_time = extractors.extract_booking_time(root_folder, booking_html_file)
+    
+    if booking_time:
+        print(booking_time)
+        sys.exit(0)
+    else:
+        sys.exit(1)
